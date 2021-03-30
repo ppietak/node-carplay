@@ -1,0 +1,51 @@
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>HTML5 Video Tag Test</title>
+</head>
+<body>
+
+<section class="page__content" itemprop="text">
+	<div>
+		<img id="x" src="data:image/png;base64,">
+	</div>
+
+	<script type="text/javascript">
+
+		let socket
+		let connected = false
+
+		socket = new WebSocket("ws://192.168.0.216:3000/video");
+
+		socket.onmessage = async function(event) {
+			// console.log(await event.data.text())
+			document.getElementById("x").src = "data:image/png;base64," + await event.data.text();
+		};
+
+		socket.onopen = function(e) {
+			console.log("[open] Connection established");
+			connected = true
+		};
+
+		socket.onclose = function(event) {
+			if (event.wasClean) {
+				console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+			} else {
+				// e.g. server process killed or network down
+				// event.code is usually 1006 in this case
+				console.log('[close] Connection died');
+			}
+			connected = false
+		};
+
+		socket.onerror = function(error) {
+			console.error(`[error] ${error.message}`);
+			connected = false
+		};
+	</script>
+
+</section>
+
+
+</body>
+</html>
