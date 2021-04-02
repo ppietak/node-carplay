@@ -1,9 +1,10 @@
-const server = require('./server')
-const converter = require('./converter')
-
 const transport = require('./transport')
+const converter = require('./converter/h264Converter')
+const server = require('./server')
+
+const {eventBus, serverStream} = server.start()
 const {videoStream} = transport.start()
-const {serverStream} = server.start()
+transport.handleEvents(eventBus)
 
 videoStream.pipe(converter.inputStream)
 converter.outputStream.pipe(serverStream)

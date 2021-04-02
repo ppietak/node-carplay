@@ -32,6 +32,7 @@ const makeFile = (filename, content) => {
 		p("<L", len(actualFilename)),
 		Buffer.from(actualFilename, 'ascii'),
 		p("<L", len(content)),
+
 		Buffer.from(content, 'binary')
 	]))
 }
@@ -41,12 +42,15 @@ const makeString = (filename, value) => makeFile(filename, Buffer.from(value, 'a
 const makeAsset = (filename) => makeFile('/tmp/' + filename, fs.readFileSync('assets/' + filename).toString('binary'))
 const makeSetup = (width, height, fps, format) => pack(1, p("<LLLLLLL", [width, height, fps, format, 49152, 2, 2]))
 const makeHeartbeat = () => pack(170, Buffer.from(''))
+const makeEventTouchUp = (x, y) => pack(5, p("<LLLL", [16, x, y, 0]))
+const makeEventTouchMove = (x, y) => pack(5, p("<LLLL", [15, x, y, 0]))
+const makeEventTouchDown = (x, y) => pack(5, p("<LLLL", [14, x, y, 0]))
 
 const allAssets = ["adb", "adb.pub", "helloworld0", "helloworld1", "helloworld2", "libby265n.so", "libby265n_x86.so", "libscreencap40.so", "libscreencap41.so", "libscreencap43.so", "libscreencap50.so", "libscreencap50_x86.so", "libscreencap442.so", "libscreencap422.so", "mirrorcoper.apk", "libscreencap60.so", "libscreencap70.so", "libscreencap71.so", "libscreencap80.so", "libscreencap90.so", "libscreencap100.so", "HWTouch.dex"];
 
 const afterSetupInfo = [
 	makeManufacturerInfo(),
-	makeInt("/tmp/night_mode", 0),
+	makeInt("/tmp/night_mode", 1),
 	makeInt("/tmp/hand_drive_mode", 0),
 	makeInt("/tmp/charge_mode", 0),
 	makeString("/etc/box_name", 'RaptorKit'),
@@ -55,7 +59,7 @@ const startupInfo = [
 	makeInt("/tmp/screen_dpi", 160),
 	// makeAsset('adb'),
 	// ...allAssets.map(asset => makeAsset(asset)),
-	makeSetup(800, 600, 30, VIDEO_FORMAT_H264),
+	makeSetup(800, 600, 30, 5),
 ];
 
 module.exports = {
@@ -66,6 +70,9 @@ module.exports = {
 	makeFile,
 	makeManufacturerInfo,
 	makeHeartbeat,
+	makeEventTouchUp,
+	makeEventTouchDown,
+	makeEventTouchMove,
 	startupInfo,
 	afterSetupInfo,
 	verifyMagicNumber,
@@ -74,7 +81,8 @@ module.exports = {
 		SETUP: 1,
 		CARPLAY: 8,
 		CONNECTION: 2,
-		STREAMING: 3,
+		PHASE: 3,
+		DISCONNECTED: 4,
 		VIDEO: 6,
 		AUDIO: 7,
 		DEVICE_NAME: 13,

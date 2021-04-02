@@ -68,22 +68,14 @@ const onConnected = async () => {
 	endpointInput.on('data', (data) => {
 		// console.log('DATA', data)
 
-		if (data.length === HEADER_SIZE) {
-			const [magicNumber, dataLength, type, typeCheck] = struct.unpack('<LLLL', data.slice(0, HEADER_SIZE))
+		if (data.length <= expectedDataLength && currentType === protocol.type.VIDEO) {
+			bus.emit('video', data)
+			expectedDataLength -= data.length
 
-			if (!protocol.verifyType(type, typeCheck)) {
-				console.error('BAD TYPE');
-				return;
+			if (expectedDataLength === 0) {
+				buffer = Buffer.from('', 'binary')
+				currentType = undefined
 			}
-
-			if (!protocol.verifyMagicNumber(magicNumber)) {
-				console.error('BAD MAGIC NUMBER');
-				return;
-			}
-
-			expectedDataLength = dataLength
-			currentType = type;
-
 		} else if (data.length <= expectedDataLength && currentType) {
 			buffer = Buffer.concat([buffer, data])
 			expectedDataLength -= data.length
@@ -94,6 +86,21 @@ const onConnected = async () => {
 				buffer = Buffer.from('', 'binary')
 				currentType = undefined
 			}
+		} else if (data.length === HEADER_SIZE) {
+			const [magicNumber, dataLength, type, typeCheck] = struct.unpack('<LLLL', data.slice(0, HEADER_SIZE))
+
+			if (!protocol.verifyType(type, typeCheck)) {
+				console.error('BAD TYPE', type, data.length, data);
+				return;
+			}
+
+			if (!protocol.verifyMagicNumber(magicNumber)) {
+				console.error('BAD MAGIC NUMBER');
+				return;
+			}
+
+			expectedDataLength = dataLength
+			currentType = type;
 		} else {
 			console.log('?', buffer.byteLength)
 			currentType = undefined
@@ -117,6 +124,12 @@ const onHeartbeat = async () => {
 	}
 }
 
+const onVideo = async (data) => {
+	const NALUnitOffset = data.indexOf(new Uint8Array([0x00, 0x00, 0x00, 0x01]));
+	const videoData = NALUnitOffset === 20 ? data.slice(20) : data
+	videoStream.write(videoData)
+}
+
 const onMessage = async ({type, data}) => {
 	switch (type) {
 		case protocol.type.SETUP: {
@@ -128,27 +141,22 @@ const onMessage = async ({type, data}) => {
 			break;
 		}
 
-		case protocol.type.VIDEO:
-			const [width, height, flags, x1, x2] = receive('LLLLL', data.slice(0, 20))
-			// console.log('> VIDEO', {width, height, flags, x1, x2})
-			console.log('> VIDEO', data.length)
-
-			const videoData = data.slice(20)
-			videoStream.write(videoData)
-
-			break;
-
 		case protocol.type.CARPLAY:
 			const data1 = receive('L', data);
 			console.log('> CARPLAY', data1)
 			break;
 
 		case protocol.type.CONNECTION:
-			console.log('> PLUGGED', data.toString())
+			console.log('> CONNECTED', receive('L', data))
 			break;
 
-		case protocol.type.STREAMING:
-			console.log('> SOMETHING')
+		case protocol.type.PHASE:
+			const phase = receive('L', data);
+			console.log('> PHASE', phase)
+			break;
+
+		case protocol.type.DISCONNECTED:
+			console.log('> DISCONNECTED')
 			break;
 
 		case protocol.type.DEVICE_NAME:
@@ -196,16 +204,34 @@ usb.on('detach', onDetach)
 module.exports = {
 	start: () => {
 		usb.setDebugLevel(3);
-		usb.on('attach', onAttach)
-		usb.on('detach', onDetach)
 
 		bus.on('connected', onConnected)
 		bus.on('heartbeat', onHeartbeat)
 		bus.on('message', onMessage)
+		bus.on('video', onVideo)
 
 		connect()
 
 		return {videoStream}
+	},
+
+	handleEvents: (eventBus) => {
+
+		eventBus.on('touch_up', async (x, y) => {
+			// console.log('touch up', x, y)
+			await send(protocol.makeEventTouchUp(x, y))
+		})
+
+		// eventBus.on('touch_move', async (x, y) => {
+		// 	console.log('touch move', x, y)
+		// 	await send(protocol.makeEventTouchMove(x, y))
+		// })
+
+		eventBus.on('touch_down', async (x, y) => {
+			// console.log('touch down', x, y)
+			await send(protocol.makeEventTouchDown(x, y))
+		})
+
 	},
 
 	send,

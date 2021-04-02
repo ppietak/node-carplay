@@ -1,4 +1,4 @@
-const {PassThrough, Transform} = require('stream')
+const {PassThrough} = require('stream')
 const childProcess = require('child_process');
 
 const pngHeader = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
@@ -7,7 +7,7 @@ const jpegHeader = new Uint8Array([0xFF, 0xD8]);
 const inputStream = new PassThrough()
 const outputStream = new PassThrough()
 
-let transcoder = childProcess.spawn("/usr/bin/ffmpeg", [
+const h264ToPng = [
 	'-hide_banner',
 	'-i', '-',
 	'-threads', '1',
@@ -15,10 +15,11 @@ let transcoder = childProcess.spawn("/usr/bin/ffmpeg", [
 	'-vcodec', 'png',
 	'-f', 'image2pipe',
 	'-',
-]);
+];
+
+let transcoder = childProcess.spawn("/usr/bin/ffmpeg", h264ToPng);
 
 inputStream.pipe(transcoder.stdin)
-transcoder.stderr.pipe(process.stdout)
 
 let buff = Buffer.from('', 'binary')
 
