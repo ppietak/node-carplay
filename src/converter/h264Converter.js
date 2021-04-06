@@ -8,7 +8,7 @@ const h264ToH264 = [
 	'-hide_banner',
 	'-i', '-',
 	'-threads', '8',
-	// '-framerate', '5',
+	'-framerate', '25',
 	'-movflags', 'frag_keyframe+empty_moov',
 	// "-video_size", '800x600',
 	'-vcodec', 'libx264',
@@ -32,8 +32,10 @@ inputStream.pipe(transcoder.stdin)
 // inputStream.on('data', d => process.stdout.write('-'))
 // transcoder.stdout.on('data', d => process.stdout.write('+'))
 
-transcoder.stdout.on('data', data => outputStream.write(data))
-transcoder.stderr.pipe(process.stdout)
+transcoder.stdout.pipe(outputStream)
+
+// transcoder.stdout.on('data', data => outputStream.write(data))
+// transcoder.stderr.pipe(process.stdout)
 
 module.exports = {
 	inputStream,

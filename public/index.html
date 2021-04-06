@@ -11,6 +11,9 @@
 <!--		<img id="x" src="data:image/png;base64,">-->
 <!--	</div>-->
 
+<input id="code" type="text" />
+<button onclick="sendButton()">send</button>
+
 <script type="text/javascript">
 	const URL = "ws://" + document.location.host;
 
@@ -59,7 +62,6 @@
 	let mousedown = false;
 
 	const mouse = (type, event) => {
-		// fetch(`http://localhost:3000/event?type=${type}&x=${event.offsetX}&y=${event.offsetY}`, {method: 'POST', cache: 'no-cache'});
 		player.send(type, event.offsetX, event.offsetY)
 	}
 
@@ -75,6 +77,10 @@
 		mousedown = false;
 		mouse("up", event);
 	};
+
+	var sendButton = () => {
+		player.send('button', document.getElementById("code").value)
+	}
 
 
 </script>
