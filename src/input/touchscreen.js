@@ -25,7 +25,7 @@ const parse = buf => ({
 	y: buf.readInt8(2)
 })
 
-const input = fs.createReadStream(DEVICE_PATH, {flags: 'r'});
+const touchscreen = fs.createReadStream(DEVICE_PATH, {flags: 'r'});
 
 const delayInput = debounce((event) => {
 	if (shouldSendDown) {
@@ -37,7 +37,7 @@ const delayInput = debounce((event) => {
 	}
 }, INPUT_INTERVAL);
 
-input.on('data', async (data) => {
+touchscreen.on('data', async (data) => {
 	const event = parse(data);
 
 	currentX += event.x

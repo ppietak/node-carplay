@@ -1,4 +1,5 @@
 const stream = require('stream')
+const events = require('events')
 
 const protocol = require('./protocol')
 const usb = require('./usb')
@@ -6,10 +7,9 @@ const usb = require('./usb')
 const HEADER_SIZE = 16;
 const HEARTBEAT_INTERVAL_MS = 2000;
 
-// const bus = new events.EventEmitter()
+const bus = new events.EventEmitter()
 const videoStream = new stream.PassThrough()
-const audioStereoStream = new stream.PassThrough()
-const audioMonoStream = new stream.PassThrough()
+const audioStream = new stream.PassThrough()
 
 let boxWidth, boxHeight
 
@@ -89,7 +89,6 @@ const onVideo = (data) => {
 	videoStream.write(videoData)
 }
 
-let lastAudioStream
 const onAudio = (data) => {
 	// console.log(data.length, data)
 	const headerSize = 12;
@@ -98,21 +97,33 @@ const onAudio = (data) => {
 	if (amount === 1) {
 		const [decodeType, volume, audioType, command] = protocol.unpack('<LfLB', data);
 		console.log('> AUDIO', decodeType, volume, audioType, command)
+		switch (command) {
+			case protocol.audioCommand.OUTPUT_START:
+				if (decodeType === protocol.audioType.STEREO) {
+					bus.emit('audio_stereo_start')
+				} else {
+					bus.emit('audio_mono_start')
+				}
+				break
+
+			case protocol.audioCommand.OUTPUT_STOP:
+				if (decodeType === protocol.audioType.STEREO) {
+					bus.emit('audio_stereo_stop')
+				} else {
+					bus.emit('audio_mono_stop')
+				}
+				break
+		}
 	} else if (amount === 4) {
 		console.log('> AUDIO VOL DUR', protocol.unpack("<L", data.slice(headerSize)))
 	} else {
-		const stereoHeader = new Uint8Array([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
-		const monoHeader = new Uint8Array([0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
-		if (data.indexOf(monoHeader) === 0) {
-			// lastAudioStream = audioMonoStream
-			// lastAudioStream.write(data.slice(headerSize))
-		} else if (data.indexOf(stereoHeader) === 0) {
-			lastAudioStream = audioStereoStream
-			lastAudioStream.write(data.slice(headerSize))
+		const stereoHeader = new Uint8Array([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
+
+		if (data.indexOf(stereoHeader) === 1) {
+			audioStream.write(data.slice(headerSize))
 		} else {
-			lastAudioStream.write(data)
+			audioStream.write(data)
 		}
-		//wont work like this
 	}
 }
 
@@ -199,6 +210,7 @@ module.exports = {
 		await send(protocol.buildButtonPacket(code))
 	},
 	getVideoStream: () => videoStream,
-	getAudioStereoStream: () => audioStereoStream,
-	getAudioMonoStream: () => audioMonoStream,
+	getAudioStream: () => audioStream,
+	getEventBus: () => bus,
+	button: protocol.button,
 }

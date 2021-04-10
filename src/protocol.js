@@ -85,13 +85,30 @@ module.exports = {
 		BUTTON: 8,
 		HEARTBEAT: 170,
 	},
+	audioCommand: {
+		OUTPUT_START: 1,
+		OUTPUT_STOP: 1,
+		SIRI_START: 8,
+		SIRI_STOP: 9,
+	},
+	audioType: {
+		STEREO: 2,
+		MONO: 5,
+	},
 	touch: {
 		DOWN: 14,
 		MOVE: 15,
 		UP: 16,
 	},
 	button: {
+		SIRI: [5, 6],
 		LEFT: 100,
 		RIGHT: 101,
+		SELECT: [104, 105],
+		BACK: 106,
+		HOME: 200,
+		PLAY: 201,
+		PAUSE: 202,
+		PLAY_OR_PAUSE: 203,
 	},
 }
