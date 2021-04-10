@@ -8,7 +8,8 @@ const HEARTBEAT_INTERVAL_MS = 2000;
 
 // const bus = new events.EventEmitter()
 const videoStream = new stream.PassThrough()
-const audioStream = new stream.PassThrough()
+const audioStereoStream = new stream.PassThrough()
+const audioMonoStream = new stream.PassThrough()
 
 let boxWidth, boxHeight
 
@@ -88,9 +89,31 @@ const onVideo = (data) => {
 	videoStream.write(videoData)
 }
 
+let lastAudioStream
 const onAudio = (data) => {
-	// process.stdout.write('A')
-	audioStream.write(data)
+	// console.log(data.length, data)
+	const headerSize = 12;
+	const amount = data.length - headerSize
+
+	if (amount === 1) {
+		const [decodeType, volume, audioType, command] = protocol.unpack('<LfLB', data);
+		console.log('> AUDIO', decodeType, volume, audioType, command)
+	} else if (amount === 4) {
+		console.log('> AUDIO VOL DUR', protocol.unpack("<L", data.slice(headerSize)))
+	} else {
+		const stereoHeader = new Uint8Array([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
+		const monoHeader = new Uint8Array([0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
+		if (data.indexOf(monoHeader) === 0) {
+			// lastAudioStream = audioMonoStream
+			// lastAudioStream.write(data.slice(headerSize))
+		} else if (data.indexOf(stereoHeader) === 0) {
+			lastAudioStream = audioStereoStream
+			lastAudioStream.write(data.slice(headerSize))
+		} else {
+			lastAudioStream.write(data)
+		}
+		//wont work like this
+	}
 }
 
 const onCommand = (type, payload) => {
@@ -134,24 +157,6 @@ const onCommand = (type, payload) => {
 			console.log('> SOFTWARE VERSION', payload.toString())
 			break;
 
-		// case protocol.type.AUDIO:
-		// const [boxWidth, boxHeight, flags, x1, x2] = struct.unpack('LLLLL', data.slice(0, 20))
-		// console.log('> AUDIO')
-		/*
-
-		amount = len(data) - 12
-		(self.decodeType, self.volume, self.audioType) = struct.unpack("<LfL", data[:12])
-		if amount == 1:
-			self.command = _setenum(self.Command, data[12])
-		elif amount == 4:
-			self.volumeDuration = struct.unpack("<L", data[12:])
-		else:
-			# data is uncompressed, of the format specified in self.decodeType (ints appear to be signed)
-		self.data = data[12:]
-
-		 */
-		// break;
-
 		default:
 			console.log('-', type, payload.toString())
 	}
@@ -194,5 +199,6 @@ module.exports = {
 		await send(protocol.buildButtonPacket(code))
 	},
 	getVideoStream: () => videoStream,
-	getAudioStream: () => audioStream,
+	getAudioStereoStream: () => audioStereoStream,
+	getAudioMonoStream: () => audioMonoStream,
 }
