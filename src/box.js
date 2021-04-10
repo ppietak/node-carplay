@@ -17,6 +17,8 @@ let currentType
 let remainingDataLength
 
 const onStarted = async () => {
+	await new Promise(res => setTimeout(res, 1000))
+
 	heartbeatInterval = setInterval(onHeartbeat, HEARTBEAT_INTERVAL_MS)
 
 	for (const packet of protocol.startupInfo) {

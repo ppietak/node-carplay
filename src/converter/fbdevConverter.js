@@ -4,18 +4,11 @@ const childProcess = require('child_process');
 const inputStream = new PassThrough()
 const outputStream = new PassThrough()
 
-const h264ToFbdev = [
-	'-hide_banner',
-	'-i', '-',
-	'-threads', '4',
-	'-pix_fmt',  'bgra',
-	'-f', 'fbdev', '/dev/fb0',
-];
+let ffmpeg = childProcess.spawn("/usr/bin/ffmpeg", ['-hide_banner', '-i', '-', '-threads', '8', '-pix_fmt',  'bgra', '-f', 'fbdev', '/dev/fb0']);
 
-let transcoder = childProcess.spawn("/usr/bin/ffmpeg", h264ToFbdev);
+inputStream.pipe(ffmpeg.stdin)
 
-inputStream.pipe(transcoder.stdin)
-// transcoder.stderr.pipe(process.stdout)
+// ffmpeg.stderr.pipe(process.stdout)
 
 module.exports = {
 	inputStream,

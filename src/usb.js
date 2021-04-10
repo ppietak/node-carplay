@@ -118,12 +118,12 @@ const transfer = (message) => {
 	}
 }
 
-usb.on('attach', onAttach)
-usb.on('detach', onDetach)
-
 module.exports = {
 	start: () => {
 		connect()
+		usb.on('attach', onAttach)
+		usb.on('detach', onDetach)
+
 		return bus
 	},
 	transfer,

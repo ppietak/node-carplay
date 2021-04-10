@@ -2,7 +2,6 @@ const struct = require('python-struct');
 const fs = require('fs');
 
 const magicNumber = 0x55aa55aa;
-const VIDEO_FORMAT_H264 = 5;
 
 const verifyMagicNumber = input => input.toString() === Number.parseInt(magicNumber).toString()
 const verifyType = (type, check) => BigInt(check).toString() === (BigInt(type) ^ BigInt(-1) & BigInt(0xffffffff)).toString(10)
@@ -43,14 +42,14 @@ const afterSetupInfo = [
 	makeManufacturerInfo(),
 	makeInt("/tmp/night_mode", 1),
 	makeInt("/tmp/hand_drive_mode", 0),
-	makeInt("/tmp/charge_mode", 0),
+	makeInt("/tmp/charge_mode", 1),
 	makeString("/etc/box_name", 'RaptorKit'),
 ];
 const startupInfo = [
 	makeInt("/tmp/screen_dpi", 160),
 	// makeAsset('adb'),
 	// ...allAssets.map(asset => makeAsset(asset)),
-	makeSetup(800, 600, 30, 5),
+	makeSetup(1280, 720, 30, 5),
 ];
 
 module.exports = {
