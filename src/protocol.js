@@ -27,11 +27,11 @@ const makeFile = (filename, content) => {
 }
 
 const makeManufacturerInfo = () => pack(20, bin('<LL', [0, 0]))
-const makeInt = (filename, value) => makeFile(filename, bin('<L', value))
+const buildIntegerPacket = (filename, value) => makeFile(filename, bin('<L', value))
 const makeString = (filename, value) => makeFile(filename, Buffer.from(value, 'ascii'))
 const makeAsset = (filename) => makeFile('/tmp/' + filename, fs.readFileSync('assets/' + filename).toString('binary'))
-const makeSetup = (width, height, fps, format) => pack(1, bin("<LLLLLLL", [width, height, fps, format, 49152, 2, 2]))
 
+const buildSetupPacket = (width, height, fps, format) => pack(1, bin("<LLLLLLL", [width, height, fps, format, 49152, 2, 2]))
 const buildHeartbeatPacket = () => pack(170, Buffer.from(''))
 const buildTouchPacket = (type, x, y) => pack(5, bin("<LLLL", [type, x, y, 0]))
 const buildButtonPacket = (code) => pack(8, bin("<L", [code]))
@@ -40,22 +40,22 @@ const allAssets = ["adb", "adb.pub", "helloworld0", "helloworld1", "helloworld2"
 
 const afterSetupInfo = [
 	makeManufacturerInfo(),
-	makeInt("/tmp/night_mode", 1),
-	makeInt("/tmp/hand_drive_mode", 0),
-	makeInt("/tmp/charge_mode", 1),
+	buildIntegerPacket("/tmp/night_mode", 1),
+	buildIntegerPacket("/tmp/hand_drive_mode", 0),
+	buildIntegerPacket("/tmp/charge_mode", 1),
 	makeString("/etc/box_name", 'RaptorKit'),
 ];
 const startupInfo = [
-	makeInt("/tmp/screen_dpi", 160),
+	buildIntegerPacket("/tmp/screen_dpi", 160),
 	// makeAsset('adb'),
 	// ...allAssets.map(asset => makeAsset(asset)),
-	makeSetup(1280, 720, 30, 5),
+	buildHeartbeatPacket(1280, 720, 30, 5),
 ];
 
 module.exports = {
 	pack,
 	unpack: (format, vars) => struct.unpack(format, vars),
-	// makeInt,
+	buildIntegerPacket,
 	// makeString,
 	// makeAsset,
 	// makeSetup,
@@ -64,7 +64,7 @@ module.exports = {
 	buildHeartbeatPacket,
 	buildTouchPacket,
 	buildButtonPacket,
-	startupInfo,
+	buildSetupPacket,
 	afterSetupInfo,
 	verifyMagicNumber,
 	verifyType,

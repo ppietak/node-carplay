@@ -2,6 +2,7 @@ const fs = require('fs')
 const events = require('events')
 
 const DEVICE_PATH = '/dev/input/mouse1';
+const INPUT_INTERVAL = 10;
 
 const bus = new events.EventEmitter();
 
@@ -10,6 +11,13 @@ const targetWidth = 1280, targetHeight = 720
 
 let currentX = touchscreenWidth / 2
 let currentY = touchscreenHeight / 2
+let initialT = null
+let initialX = null
+let initialY = null
+let shouldSendDown = false
+
+const debounce = function(a,b,c){var d;return function(){var e=this,f=arguments;clearTimeout(d),d=setTimeout(function(){d=null,c||a.apply(e,f)},b),c&&!d&&a.apply(e,f)}}
+const normalize = (x, y) => ([Math.round(x * (targetWidth / touchscreenWidth)), Math.round(y * (targetHeight / touchscreenHeight))])
 
 const parse = buf => ({
 	t: buf.readInt8(0),
@@ -19,20 +27,41 @@ const parse = buf => ({
 
 const input = fs.createReadStream(DEVICE_PATH, {flags: 'r'});
 
+const delayInput = debounce((event) => {
+	if (shouldSendDown) {
+		bus.emit('touch_down', ...normalize(currentX, currentY))
+		initialT = event.t
+		initialX = currentX
+		initialY = currentY
+		shouldSendDown = false
+	}
+}, INPUT_INTERVAL);
+
 input.on('data', async (data) => {
 	const event = parse(data);
-	if (event.t === 8) {
-		const x = Math.round(currentX * (targetWidth / touchscreenWidth))
-		const y = Math.round(currentY * (targetHeight / touchscreenHeight))
 
-		// console.log(x, y)
-		bus.emit('touch_press', x, y)
-	} else {
-		currentX += event.x
-		currentY -= event.y
+	currentX += event.x
+	currentY -= event.y
+
+	if (!initialT) {
+		shouldSendDown = true
+		delayInput(event)
+	} else if (initialX !== currentX && initialY !== currentY) {
+		bus.emit('touch_move', ...normalize(currentX, currentY))
+	}
+
+	if (event.t === 8) {
+		if (initialT) {
+			bus.emit('touch_up', ...normalize(currentX, currentY))
+		}
+
+		initialT = null
+		initialX = null
+		initialY = null
+		shouldSendDown = false
 	}
 });
 
 module.exports = {
-	getEventBus: () => bus
+	bus
 }

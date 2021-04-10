@@ -10,6 +10,8 @@ const HEARTBEAT_INTERVAL_MS = 2000;
 const videoStream = new stream.PassThrough()
 const audioStream = new stream.PassThrough()
 
+let boxWidth, boxHeight
+
 let heartbeatInterval
 
 let currentBuffer = Buffer.from('', 'binary')
@@ -21,9 +23,8 @@ const onStarted = async () => {
 
 	heartbeatInterval = setInterval(onHeartbeat, HEARTBEAT_INTERVAL_MS)
 
-	for (const packet of protocol.startupInfo) {
-		await send(packet)
-	}
+	await send(protocol.buildIntegerPacket("/tmp/screen_dpi", 160))
+	await send(protocol.buildSetupPacket(boxWidth, boxHeight, 30, 5))
 }
 
 const onStopped = () => {
@@ -134,7 +135,7 @@ const onCommand = (type, payload) => {
 			break;
 
 		// case protocol.type.AUDIO:
-		// const [width, height, flags, x1, x2] = struct.unpack('LLLLL', data.slice(0, 20))
+		// const [boxWidth, boxHeight, flags, x1, x2] = struct.unpack('LLLLL', data.slice(0, 20))
 		// console.log('> AUDIO')
 		/*
 
@@ -170,7 +171,10 @@ const send = async (packet) => {
 }
 
 module.exports = {
-	start: () => {
+	start: (width, height) => {
+		boxWidth = width
+		boxHeight = height
+
 		const usbBus = usb.start()
 
 		usbBus.on('started', onStarted)
@@ -178,13 +182,13 @@ module.exports = {
 		usbBus.on('data', onData)
 	},
 	sendTouchUp: async (x, y) => {
-		await send(protocol.buildTouchPacket(protocol.touch.UP, x, y))
+		await send(protocol.buildTouchPacket(protocol.touch.UP, x/boxWidth*10000, y/boxHeight*10000))
 	},
 	sendTouchMove: async (x, y) => {
-		await send(protocol.buildTouchPacket(protocol.touch.MOVE, x, y))
+		await send(protocol.buildTouchPacket(protocol.touch.MOVE, x/boxWidth*10000, y/boxHeight*10000))
 	},
 	sendTouchDown: async (x, y) => {
-		await send(protocol.buildTouchPacket(protocol.touch.DOWN, x, y))
+		await send(protocol.buildTouchPacket(protocol.touch.DOWN, x/boxWidth*10000, y/boxHeight*10000))
 	},
 	sendButton: async (code) => {
 		await send(protocol.buildButtonPacket(code))
