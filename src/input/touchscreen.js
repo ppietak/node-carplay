@@ -15,6 +15,7 @@ let initialT = null
 let initialX = null
 let initialY = null
 let shouldSendDown = false
+let isMoving = false
 
 const debounce = function(a,b,c){var d;return function(){var e=this,f=arguments;clearTimeout(d),d=setTimeout(function(){d=null,c||a.apply(e,f)},b),c&&!d&&a.apply(e,f)}}
 const normalize = (x, y) => ([Math.round(x * (targetWidth / touchscreenWidth)), Math.round(y * (targetHeight / touchscreenHeight))])
@@ -27,6 +28,7 @@ const parse = buf => ({
 
 const touchscreen = fs.createReadStream(DEVICE_PATH, {flags: 'r'});
 
+const delay = debounce((t, x, y) => { bus.emit(t, ...normalize(x, y)) }, 50)
 const delayInput = debounce((event) => {
 	if (shouldSendDown) {
 		bus.emit('touch_down', ...normalize(currentX, currentY))
@@ -46,13 +48,19 @@ touchscreen.on('data', async (data) => {
 	if (!initialT) {
 		shouldSendDown = true
 		delayInput(event)
-	} else if (initialX !== currentX && initialY !== currentY) {
+	} else if (initialX !== currentX || initialY !== currentY) {
 		bus.emit('touch_move', ...normalize(currentX, currentY))
+		isMoving = true
 	}
 
 	if (event.t === 8) {
 		if (initialT) {
-			bus.emit('touch_up', ...normalize(currentX, currentY))
+			if (isMoving) {
+				delay('touch_up', currentX, currentY)
+				isMoving = false
+			} else {
+				bus.emit('touch_up', ...normalize(currentX, currentY))
+			}
 		}
 
 		initialT = null

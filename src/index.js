@@ -1,13 +1,17 @@
 const box = require('./box')
 const touchscreen = require('./input/touchscreen')
 const keyboard = require('./input/keyboard')
-const converter = require('./converter/fbdevConverter')
+const video = require('./output/video')
+const audio = require('./output/audio')
 
 const os = require('os');
 os.setPriority(os.constants.priority.PRIORITY_HIGHEST)
 
 touchscreen.bus.on('touch_down', async (x, y) => {
 	await box.sendTouchDown(x, y)
+})
+touchscreen.bus.on('touch_move', async (x, y) => {
+	await box.sendTouchMove(x, y)
 })
 touchscreen.bus.on('touch_up', async (x, y) => {
 	await box.sendTouchUp(x, y)
@@ -46,24 +50,7 @@ keyboard.bus.on('key_press', async (code) => {
 	}
 })
 
-box.getVideoStream().pipe(converter.inputStream)
 box.start(1280, 720)
 
-// const Speaker = require('speaker');
-//
-// box.getEventBus().on('audio_stereo_start', () => {
-// 	speaker = new Speaker({channels: 2, bitDepth: 16, sampleRate: 44100, device: 'plughw:2,0'})
-// })
-// box.getEventBus().on('audio_mono_start', () => {
-// 	speaker = new Speaker({channels: 1, bitDepth: 16, sampleRate: 16000, device: 'plughw:2,0'});
-// })
-// box.getEventBus().on('audio_stereo_stop', () => {
-// 	speaker.close()
-// 	speaker = undefined
-// })
-// box.getEventBus().on('audio_mono_stop', () => {
-// 	speaker.close()
-// 	speaker = undefined
-// })
-//
-// box.getAudioStream().pipe(speaker);
+box.getAudioStream().pipe(audio.output)
+box.getVideoStream().pipe(video.output)

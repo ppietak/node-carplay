@@ -24,8 +24,8 @@ const onStarted = async () => {
 
 	heartbeatInterval = setInterval(onHeartbeat, HEARTBEAT_INTERVAL_MS)
 
-	await send(protocol.buildIntegerPacket("/tmp/screen_dpi", 160))
-	await send(protocol.buildSetupPacket(boxWidth, boxHeight, 30, 5))
+	// await send(protocol.buildIntegerPacket("/tmp/screen_dpi", 80))
+	await send(protocol.buildSetupPacket(boxWidth, boxHeight, 25, 5))
 }
 
 const onStopped = () => {
