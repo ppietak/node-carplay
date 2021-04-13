@@ -87,7 +87,7 @@ module.exports = {
 	},
 	audioCommand: {
 		OUTPUT_START: 1,
-		OUTPUT_STOP: 1,
+		OUTPUT_STOP: 2,
 		SIRI_START: 8,
 		SIRI_STOP: 9,
 	},

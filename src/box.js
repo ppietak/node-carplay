@@ -9,7 +9,8 @@ const HEARTBEAT_INTERVAL_MS = 2000;
 
 const bus = new events.EventEmitter()
 const videoStream = new stream.PassThrough()
-const audioStream = new stream.PassThrough()
+const audioStereoStream = new stream.PassThrough()
+const audioMonoStream = new stream.PassThrough()
 
 let boxWidth, boxHeight
 
@@ -89,6 +90,10 @@ const onVideo = (data) => {
 	videoStream.write(videoData)
 }
 
+const audioStereoHeader = new Uint8Array([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
+const audioMonoHeader = new Uint8Array([0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
+let lastAudioHeader
+
 const onAudio = (data) => {
 	// console.log(data.length, data)
 	const headerSize = 12;
@@ -117,12 +122,19 @@ const onAudio = (data) => {
 	} else if (amount === 4) {
 		console.log('> AUDIO VOL DUR', protocol.unpack("<L", data.slice(headerSize)))
 	} else {
-		const stereoHeader = new Uint8Array([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
-
-		if (data.indexOf(stereoHeader) === 1) {
-			audioStream.write(data.slice(headerSize))
+		if (data.indexOf(audioMonoHeader) === 0) {
+			lastAudioHeader = audioMonoHeader
+			audioMonoStream.write(data.slice(headerSize))
+		} else if (data.indexOf(audioStereoHeader) === 0) {
+			lastAudioHeader = audioStereoHeader
+			audioStereoStream.write(data.slice(headerSize))
 		} else {
-			audioStream.write(data)
+			if (lastAudioHeader === audioMonoHeader) {
+				audioMonoStream.write(data)
+			} else if (lastAudioHeader === audioStereoHeader) {
+				audioStereoStream.write(data)
+			} else {
+			}
 		}
 	}
 }
@@ -210,7 +222,8 @@ module.exports = {
 		await send(protocol.buildButtonPacket(code))
 	},
 	getVideoStream: () => videoStream,
-	getAudioStream: () => audioStream,
-	getEventBus: () => bus,
+	audioStereoStream,
+	audioMonoStream,
+	bus,
 	button: protocol.button,
 }

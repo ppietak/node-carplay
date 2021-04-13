@@ -52,5 +52,6 @@ keyboard.bus.on('key_press', async (code) => {
 
 box.start(1280, 720)
 
-box.getAudioStream().pipe(audio.output)
+box.audioStereoStream.pipe(audio.stereoOutput)
+box.audioMonoStream.pipe(audio.monoOutput)
 box.getVideoStream().pipe(video.output)
