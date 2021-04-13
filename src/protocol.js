@@ -1,93 +1,114 @@
 const struct = require('python-struct');
-const bignum = require('bignum');
-const long = require('long');
 const fs = require('fs');
 
 const magicNumber = 0x55aa55aa;
-const VIDEO_FORMAT_H264 = 5;
 
 const verifyMagicNumber = input => input.toString() === Number.parseInt(magicNumber).toString()
-const verifyType = (type, check) => bignum(check).toString() === bignum(bignum(type).xor(-1)).and(0xffffffff).toString()
+const verifyType = (type, check) => BigInt(check).toString() === (BigInt(type) ^ BigInt(-1) & BigInt(0xffffffff)).toString(10)
 
 const len = x => x.toString().length
-const add = parts => Buffer.concat([...parts])
-const p = (f, d) => Buffer.from(struct.pack(f, d), 'binary')
-
-// console.log(len(add([struct.pack('<LL', [0, 0])])))
+const bin = (f, d) => Buffer.from(struct.pack(f, d), 'binary')
 
 const pack = (type, data) => {
-	// console.log(len(data))
-	return add([p("<LLLL", [magicNumber, len(data), type, long.fromString(bignum(bignum(type).xor(-1)).and(0xffffffff).toString())]), data])
-}
-
-const makeManufacturerInfo = () => {
-	const data = p('<LL', [0, 0])
-	return pack(20, data)
+	const checksum = (BigInt(type) ^ BigInt(-1) & BigInt(0xffffffff)).toString(10);
+	const length = len(data);
+	return Buffer.concat([bin("<LLLL", [magicNumber, length, type, checksum]), data])
 }
 
 const makeFile = (filename, content) => {
 	const actualFilename = String(filename + '\0')
 
-	return pack(153, add([
-		p("<L", len(actualFilename)),
+	return pack(153, Buffer.concat([
+		bin("<L", len(actualFilename)),
 		Buffer.from(actualFilename, 'ascii'),
-		p("<L", len(content)),
-
+		bin("<L", len(content)),
 		Buffer.from(content, 'binary')
 	]))
 }
 
-const makeInt = (filename, value) => makeFile(filename, p('<L', value))
+const makeManufacturerInfo = () => pack(20, bin('<LL', [0, 0]))
+const buildIntegerPacket = (filename, value) => makeFile(filename, bin('<L', value))
 const makeString = (filename, value) => makeFile(filename, Buffer.from(value, 'ascii'))
 const makeAsset = (filename) => makeFile('/tmp/' + filename, fs.readFileSync('assets/' + filename).toString('binary'))
-const makeSetup = (width, height, fps, format) => pack(1, p("<LLLLLLL", [width, height, fps, format, 49152, 2, 2]))
-const makeHeartbeat = () => pack(170, Buffer.from(''))
-const makeEventTouchUp = (x, y) => pack(5, p("<LLLL", [16, x, y, 0]))
-const makeEventTouchMove = (x, y) => pack(5, p("<LLLL", [15, x, y, 0]))
-const makeEventTouchDown = (x, y) => pack(5, p("<LLLL", [14, x, y, 0]))
+
+const buildSetupPacket = (width, height, fps, format) => pack(1, bin("<LLLLLLL", [width, height, fps, format, 49152, 2, 2]))
+const buildHeartbeatPacket = () => pack(170, Buffer.from(''))
+const buildTouchPacket = (type, x, y) => pack(5, bin("<LLLL", [type, x, y, 0]))
+const buildButtonPacket = (code) => pack(8, bin("<L", [code]))
 
 const allAssets = ["adb", "adb.pub", "helloworld0", "helloworld1", "helloworld2", "libby265n.so", "libby265n_x86.so", "libscreencap40.so", "libscreencap41.so", "libscreencap43.so", "libscreencap50.so", "libscreencap50_x86.so", "libscreencap442.so", "libscreencap422.so", "mirrorcoper.apk", "libscreencap60.so", "libscreencap70.so", "libscreencap71.so", "libscreencap80.so", "libscreencap90.so", "libscreencap100.so", "HWTouch.dex"];
 
 const afterSetupInfo = [
 	makeManufacturerInfo(),
-	makeInt("/tmp/night_mode", 1),
-	makeInt("/tmp/hand_drive_mode", 0),
-	makeInt("/tmp/charge_mode", 0),
+	buildIntegerPacket("/tmp/night_mode", 1),
+	buildIntegerPacket("/tmp/hand_drive_mode", 0),
+	buildIntegerPacket("/tmp/charge_mode", 1),
 	makeString("/etc/box_name", 'RaptorKit'),
 ];
 const startupInfo = [
-	makeInt("/tmp/screen_dpi", 160),
+	buildIntegerPacket("/tmp/screen_dpi", 160),
 	// makeAsset('adb'),
 	// ...allAssets.map(asset => makeAsset(asset)),
-	makeSetup(800, 600, 30, 5),
+	buildHeartbeatPacket(1280, 720, 30, 5),
 ];
 
 module.exports = {
-	makeInt,
-	makeString,
-	makeAsset,
-	makeSetup,
-	makeFile,
-	makeManufacturerInfo,
-	makeHeartbeat,
-	makeEventTouchUp,
-	makeEventTouchDown,
-	makeEventTouchMove,
-	startupInfo,
+	pack,
+	unpack: (format, vars) => struct.unpack(format, vars),
+	buildIntegerPacket,
+	// makeString,
+	// makeAsset,
+	// makeSetup,
+	// makeFile,
+	// makeManufacturerInfo,
+	buildHeartbeatPacket,
+	buildTouchPacket,
+	buildButtonPacket,
+	buildSetupPacket,
 	afterSetupInfo,
 	verifyMagicNumber,
 	verifyType,
 	type: {
 		SETUP: 1,
-		CARPLAY: 8,
 		CONNECTION: 2,
 		PHASE: 3,
 		DISCONNECTED: 4,
 		VIDEO: 6,
 		AUDIO: 7,
+		CARPLAY: 8,
 		DEVICE_NAME: 13,
 		DEVICE_SSID: 14,
 		KNOWN_DEVICES: 18,
 		SOFTWARE_VERSION: 204,
-	}
+
+		TOUCH: 5,
+		BUTTON: 8,
+		HEARTBEAT: 170,
+	},
+	audioCommand: {
+		OUTPUT_START: 1,
+		OUTPUT_STOP: 2,
+		SIRI_START: 8,
+		SIRI_STOP: 9,
+	},
+	audioType: {
+		STEREO: 2,
+		MONO: 5,
+	},
+	touch: {
+		DOWN: 14,
+		MOVE: 15,
+		UP: 16,
+	},
+	button: {
+		SIRI: [5, 6],
+		LEFT: 100,
+		RIGHT: 101,
+		SELECT: [104, 105],
+		BACK: 106,
+		HOME: 200,
+		PLAY: 201,
+		PAUSE: 202,
+		PLAY_OR_PAUSE: 203,
+	},
 }

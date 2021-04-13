@@ -10,22 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@clusterws/cws": "^3.0.0",
     "@types/usb": "^1.5.2",
-    "bignum": "^0.13.1",
-    "bufferpack": "0.0.6",
     "cors": "^2.8.5",
-    "express": "^4.17.1",
-    "express-ws": "^4.0.0",
-    "fluent-ffmpeg": "^2.1.2",
-    "long": "^4.0.0",
-    "mout": "^2.0.0-alpha.1",
+    "input-event": "^1.2.6",
     "python-struct": "^1.1.3",
-    "readline": "^1.3.0",
-    "stream-split": "^1.1.0",
-    "usb": "^1.6.3",
-    "websocket-stream": "^5.5.2",
-    "ws": "^7.4.4",
-    "ws-avc-player": "^2.0.2"
+    "usb": "^1.6.3"
   }
 }
