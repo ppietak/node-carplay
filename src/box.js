@@ -30,11 +30,13 @@ const onStarted = async () => {
 
 	// await send(protocol.buildIntegerPacket("/tmp/screen_dpi", 80))
 	await send(protocol.buildSetupPacket(boxWidth, boxHeight, 25, 5))
+	// await send(protocol.buildBluetoothPacket('DC:52:85:B4:1F:8C'))
 }
 
 const onStopped = () => {
 	clearInterval(heartbeatInterval)
 	heartbeatInterval = undefined
+	streamingAudioInput = false
 }
 
 const onData = (data) => {
@@ -153,11 +155,11 @@ const onAudio = (data) => {
 	}
 }
 
-const onAudioInput = async (data) => {
+const onAudioInput = (data) => {
 	if (streamingAudioInput) {
 		console.log(data.byteLength)
-		await send(protocol.buildAudioPacket(data))
-		await new Promise(res => setTimeout(res, 10))
+		send(protocol.buildAudioPacket(data))
+		// await new Promise(res => setTimeout(res, 200))
 		// console.log(data.length, data)
 	}
 }

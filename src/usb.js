@@ -1,5 +1,6 @@
 const usb = require('usb')
 const events = require('events')
+const cq = require('concurrent-queue')
 
 const DEVICE_ID = 5408;
 
@@ -112,9 +113,12 @@ const connect = (device) => {
 	}
 }
 
+const queue = cq().limit({ concurrency: 1 }).process(async function (message, cb) {
+	await transfer(message).then(() => cb(null, message))
+})
+
 const transfer = (message) => {
 	try {
-		// console.log('Transferring', message)
 		return new Promise((res) => findWriteEndpoint(iface).transfer(message, () => { res() }));
 	} catch (e) {
 		onError(e)
@@ -129,5 +133,7 @@ module.exports = {
 
 		return bus
 	},
-	transfer,
+	transfer: message => {
+		return queue(message)
+	},
 }
