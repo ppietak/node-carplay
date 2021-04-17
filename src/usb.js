@@ -80,6 +80,10 @@ const connect = (device) => {
 	console.log('Connecting...')
 	connecting = true
 
+	setTimeout(() => {
+		if (connecting) onError('Could not connect')
+	}, 5000)
+
 	try {
 		device = device || usb.getDeviceList().find(dev => dev.deviceDescriptor.idProduct === DEVICE_ID)
 
@@ -99,7 +103,6 @@ const connect = (device) => {
 		iface = deviceInterface
 
 		findReadEndpoint(iface).clearHalt(() => {
-			findWriteEndpoint(iface).timeout = 0;
 			findWriteEndpoint(iface).clearHalt(() => {
 				onConnected(deviceInterface)
 			})
@@ -112,7 +115,7 @@ const connect = (device) => {
 const transfer = (message) => {
 	try {
 		// console.log('Transferring', message)
-		return findWriteEndpoint(iface).transfer(message);
+		return new Promise((res) => findWriteEndpoint(iface).transfer(message, () => { res() }));
 	} catch (e) {
 		onError(e)
 	}

@@ -8,13 +8,16 @@ const HEADER_SIZE = 16;
 const HEARTBEAT_INTERVAL_MS = 2000;
 
 const bus = new events.EventEmitter()
-const videoStream = new stream.PassThrough()
+const videoOutputStream = new stream.PassThrough()
 const audioStereoStream = new stream.PassThrough()
 const audioMonoStream = new stream.PassThrough()
+const audioInputStream = new stream.PassThrough()
 
 let boxWidth, boxHeight
 
 let heartbeatInterval
+
+let streamingAudioInput = false
 
 let currentBuffer = Buffer.from('', 'binary')
 let currentType
@@ -87,7 +90,7 @@ const onVideo = (data) => {
 
 	const NALUnitOffset = data.indexOf(new Uint8Array([0x00, 0x00, 0x00, 0x01]));
 	const videoData = NALUnitOffset === 20 ? data.slice(20) : data
-	videoStream.write(videoData)
+	videoOutputStream.write(videoData)
 }
 
 const audioStereoHeader = new Uint8Array([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
@@ -102,6 +105,7 @@ const onAudio = (data) => {
 	if (amount === 1) {
 		const [decodeType, volume, audioType, command] = protocol.unpack('<LfLB', data);
 		console.log('> AUDIO', decodeType, volume, audioType, command)
+
 		switch (command) {
 			case protocol.audioCommand.OUTPUT_START:
 				if (decodeType === protocol.audioType.STEREO) {
@@ -117,6 +121,16 @@ const onAudio = (data) => {
 				} else {
 					bus.emit('audio_mono_stop')
 				}
+				break
+
+			case protocol.audioCommand.SIRI_START:
+				streamingAudioInput = true
+				bus.emit('audio_siri_start')
+				break
+
+			case protocol.audioCommand.SIRI_STOP:
+				streamingAudioInput = false
+				bus.emit('audio_siri_stop')
 				break
 		}
 	} else if (amount === 4) {
@@ -136,6 +150,15 @@ const onAudio = (data) => {
 			} else {
 			}
 		}
+	}
+}
+
+const onAudioInput = async (data) => {
+	if (streamingAudioInput) {
+		console.log(data.byteLength)
+		await send(protocol.buildAudioPacket(data))
+		await new Promise(res => setTimeout(res, 10))
+		// console.log(data.length, data)
 	}
 }
 
@@ -208,6 +231,7 @@ module.exports = {
 		usbBus.on('started', onStarted)
 		usbBus.on('stopped', onStopped)
 		usbBus.on('data', onData)
+		audioInputStream.on('data', onAudioInput)
 	},
 	sendTouchUp: async (x, y) => {
 		await send(protocol.buildTouchPacket(protocol.touch.UP, x/boxWidth*10000, y/boxHeight*10000))
@@ -221,9 +245,10 @@ module.exports = {
 	sendButton: async (code) => {
 		await send(protocol.buildButtonPacket(code))
 	},
-	getVideoStream: () => videoStream,
+	videoOutputStream,
 	audioStereoStream,
 	audioMonoStream,
+	audioInputStream,
 	bus,
 	button: protocol.button,
 }

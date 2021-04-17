@@ -52,6 +52,14 @@ keyboard.bus.on('key_press', async (code) => {
 
 box.start(1280, 720)
 
-box.audioStereoStream.pipe(audio.stereoOutput)
-box.audioMonoStream.pipe(audio.monoOutput)
-box.getVideoStream().pipe(video.output)
+box.videoOutputStream.pipe(video.output)
+box.audioStereoStream.pipe(audio.speakerStereo)
+box.audioMonoStream.pipe(audio.speakerMono)
+audio.microphone.pipe(box.audioInputStream)
+
+box.bus.on('audio_siri_start', () => {
+	audio.startRecording()
+})
+box.bus.on('audio_siri_stop', () => {
+	audio.stopRecording()
+})

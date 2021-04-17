@@ -35,6 +35,7 @@ const buildSetupPacket = (width, height, fps, format) => pack(1, bin("<LLLLLLL",
 const buildHeartbeatPacket = () => pack(170, Buffer.from(''))
 const buildTouchPacket = (type, x, y) => pack(5, bin("<LLLL", [type, x, y, 0]))
 const buildButtonPacket = (code) => pack(8, bin("<L", [code]))
+const buildAudioPacket = (data) => pack(7, Buffer.concat([bin("<LfL", [5, 0.0, 3]), bin("<L", len(data)), Buffer.from(data, 'binary')]))
 
 const allAssets = ["adb", "adb.pub", "helloworld0", "helloworld1", "helloworld2", "libby265n.so", "libby265n_x86.so", "libscreencap40.so", "libscreencap41.so", "libscreencap43.so", "libscreencap50.so", "libscreencap50_x86.so", "libscreencap442.so", "libscreencap422.so", "mirrorcoper.apk", "libscreencap60.so", "libscreencap70.so", "libscreencap71.so", "libscreencap80.so", "libscreencap90.so", "libscreencap100.so", "HWTouch.dex"];
 
@@ -65,6 +66,7 @@ module.exports = {
 	buildTouchPacket,
 	buildButtonPacket,
 	buildSetupPacket,
+	buildAudioPacket,
 	afterSetupInfo,
 	verifyMagicNumber,
 	verifyType,

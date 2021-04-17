@@ -1,10 +1,11 @@
 const childProcess = require('child_process');
 
 const ffmpeg = childProcess.spawn("/usr/bin/ffmpeg", [
-	'-hide_banner', '-i', '-',
+	'-hide_banner',
+	'-i', '-',
 	// '-threads', '8',
 	// '-framerate', '30',
-	'-bufsize', '256',
+	'-bufsize', '64',
 	'-pix_fmt', 'bgra',
 	'-f', 'fbdev', '/dev/fb0',
 ]);
