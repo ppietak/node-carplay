@@ -1,4 +1,4 @@
-const struct = require('python-struct');
+const { jspack } = require('jspack');
 const fs = require('fs');
 
 const magicNumber = 0x55aa55aa;
@@ -7,7 +7,7 @@ const verifyMagicNumber = input => input.toString() === Number.parseInt(magicNum
 const verifyType = (type, check) => BigInt(check).toString() === (BigInt(type) ^ BigInt(-1) & BigInt(0xffffffff)).toString(10)
 
 const len = x => x.toString().length
-const bin = (f, d) => Buffer.from(struct.pack(f, d), 'binary')
+const bin = (f, d) => Buffer.from(jspack.Pack(f, d), 'binary')
 
 const pack = (type, data) => {
 	const checksum = (BigInt(type) ^ BigInt(-1) & BigInt(0xffffffff)).toString(10);
@@ -47,16 +47,10 @@ const afterSetupInfo = [
 	buildIntegerPacket("/tmp/charge_mode", 1),
 	makeString("/etc/box_name", 'RaptorKit'),
 ];
-const startupInfo = [
-	buildIntegerPacket("/tmp/screen_dpi", 160),
-	// makeAsset('adb'),
-	// ...allAssets.map(asset => makeAsset(asset)),
-	buildHeartbeatPacket(1280, 720, 30, 5),
-];
 
 module.exports = {
 	pack,
-	unpack: (format, vars) => struct.unpack(format, vars),
+	unpack: (format, vars) => jspack.Unpack(format, vars),
 	buildIntegerPacket,
 	// makeString,
 	// makeAsset,

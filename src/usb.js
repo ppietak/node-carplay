@@ -113,9 +113,9 @@ const connect = (device) => {
 	}
 }
 
-const queue = cq().limit({ concurrency: 1 }).process(async function (message, cb) {
-	await transfer(message).then(() => cb(null, message))
-})
+// const queue = cq().limit({ concurrency: 1 }).process(async function (message, cb) {
+// 	await transfer(message).then(() => { cb(null, message) })
+// })
 
 const transfer = (message) => {
 	try {
@@ -133,7 +133,5 @@ module.exports = {
 
 		return bus
 	},
-	transfer: message => {
-		return queue(message)
-	},
+	transfer,
 }

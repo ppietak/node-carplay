@@ -6,6 +6,9 @@ const usb = require('./usb')
 
 const HEADER_SIZE = 16;
 const HEARTBEAT_INTERVAL_MS = 2000;
+const naluHeader = new Uint8Array([0x00, 0x00, 0x00, 0x01]);
+const audioStereoHeader = new Uint8Array([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
+const audioMonoHeader = new Uint8Array([0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
 
 const bus = new events.EventEmitter()
 const videoOutputStream = new stream.PassThrough()
@@ -19,7 +22,7 @@ let heartbeatInterval
 
 let streamingAudioInput = false
 
-let currentBuffer = Buffer.from('', 'binary')
+let currentData = []
 let currentType
 let remainingDataLength
 
@@ -45,25 +48,25 @@ const onData = (data) => {
 		remainingDataLength -= data.length
 
 		if (remainingDataLength === 0) {
-			currentBuffer = Buffer.from('', 'binary')
+			if (currentData.length) currentData = []
 			currentType = undefined
 		}
 	} else if (data.length <= remainingDataLength && currentType === protocol.type.AUDIO) {
-		onAudio(data)
+		// onAudio(data)
 		remainingDataLength -= data.length
 
 		if (remainingDataLength === 0) {
-			currentBuffer = Buffer.from('', 'binary')
+			if (currentData.length) currentData = []
 			currentType = undefined
 		}
 	} else if (data.length <= remainingDataLength && currentType) {
-		currentBuffer = Buffer.concat([currentBuffer, data])
+		currentData.push(data)
 		remainingDataLength -= data.length
 
 		if (remainingDataLength === 0) {
-			onCommand(currentType, currentBuffer)
+			onCommand(currentType, Buffer.concat(currentData))
 
-			currentBuffer = Buffer.from('', 'binary')
+			currentData = []
 			currentType = undefined
 		}
 	} else if (data.length === HEADER_SIZE) {
@@ -88,15 +91,9 @@ const onData = (data) => {
 }
 
 const onVideo = (data) => {
-	// process.stdout.write('V')
-
-	const NALUnitOffset = data.indexOf(new Uint8Array([0x00, 0x00, 0x00, 0x01]));
-	const videoData = NALUnitOffset === 20 ? data.slice(20) : data
-	videoOutputStream.write(videoData)
+	videoOutputStream.write(data.indexOf(naluHeader) === 20 ? data.slice(20) : data)
 }
 
-const audioStereoHeader = new Uint8Array([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
-const audioMonoHeader = new Uint8Array([0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
 let lastAudioHeader
 
 const onAudio = (data) => {
@@ -155,12 +152,12 @@ const onAudio = (data) => {
 	}
 }
 
-const onAudioInput = (data) => {
+const onAudioInput = async (data) => {
 	if (streamingAudioInput) {
-		console.log(data.byteLength)
-		send(protocol.buildAudioPacket(data))
-		// await new Promise(res => setTimeout(res, 200))
-		// console.log(data.length, data)
+		// console.log(data.byteLength)
+		await send(protocol.buildAudioPacket(data))
+		// await new Promise(res => setTimeout(res, 20))
+		// console.log(data.byteLength, data)
 	}
 }
 
@@ -212,6 +209,7 @@ const onCommand = (type, payload) => {
 
 const onHeartbeat = async () => {
 	await send(protocol.buildHeartbeatPacket())
+	// console.log(new Date(), 'H')
 }
 
 const send = async (packet) => {

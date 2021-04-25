@@ -3,7 +3,7 @@ const childProcess = require('child_process')
 const chunker = require('stream-chunker');
 
 const recordingStream = new stream.PassThrough()
-const chunkedRecordingStream = chunker(10240)
+const chunkedRecordingStream = chunker(320 * 8)
 chunkedRecordingStream.pipe(recordingStream)
 
 const startAplay = params => childProcess.spawn("/usr/bin/aplay", params)
