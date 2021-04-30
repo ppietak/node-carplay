@@ -1,13 +1,15 @@
 const usb = require('usb')
 const events = require('events')
-const cq = require('concurrent-queue')
 
 const DEVICE_ID = 5408;
+const CONNECTION_TIMEOUT = 5000;
 
 const bus = new events.EventEmitter();
 
 let connecting = false
 let iface
+let writeEndpoint
+let readEndpoint
 
 const findReadEndpoint = deviceInterface => {
 	const end = deviceInterface && deviceInterface.endpoints.find(e => e.direction === 'in')
@@ -16,6 +18,7 @@ const findReadEndpoint = deviceInterface => {
 	}
 	return end
 }
+
 const findWriteEndpoint = deviceInterface => {
 	const end = deviceInterface && deviceInterface.endpoints.find(e => e.direction === 'out')
 	if (!end) {
@@ -23,9 +26,12 @@ const findWriteEndpoint = deviceInterface => {
 	}
 	return end
 }
+
 const clean = () => {
 	iface && iface.release(true, () => {})
 	iface = undefined
+	writeEndpoint = undefined
+	readEndpoint = undefined
 }
 
 const onAttach = (device) => {
@@ -44,25 +50,18 @@ const onDetach = (device) => {
 	}
 }
 
-const onConnected = (deviceInterface) => {
+const onConnected = async (deviceInterface) => {
 	console.log('Device connected')
 	connecting = false
 
 	iface = deviceInterface
+	readEndpoint = findReadEndpoint(iface);
+	writeEndpoint = findWriteEndpoint(iface);
 
-	findReadEndpoint(iface).on('data', onData)
-	findReadEndpoint(iface).once('error', onError)
-	findReadEndpoint(iface).on('error', () => {})
-	findReadEndpoint(iface).startPoll()
+	readEndpoint.once('error', onError)
+	readEndpoint.on('error', () => {})
 
 	bus.emit('started')
-}
-
-const onDisconnected = () => {
-	console.log('Device disconnected')
-
-	bus.emit('stopped')
-	clean()
 }
 
 const onError = (error) => {
@@ -73,18 +72,13 @@ const onError = (error) => {
 	clean()
 }
 
-const onData = (data) => {
-	// console.log(data.length)
-	bus.emit('data', data)
-}
-
 const connect = (device) => {
 	console.log('Connecting...')
 	connecting = true
 
 	setTimeout(() => {
 		if (connecting) onError('Could not connect')
-	}, 5000)
+	}, CONNECTION_TIMEOUT)
 
 	try {
 		device = device || usb.getDeviceList().find(dev => dev.deviceDescriptor.idProduct === DEVICE_ID)
@@ -103,9 +97,11 @@ const connect = (device) => {
 		deviceInterface.claim();
 
 		iface = deviceInterface
+		readEndpoint = findReadEndpoint(iface);
+		writeEndpoint = findWriteEndpoint(iface);
 
-		findReadEndpoint(iface).clearHalt(() => {
-			findWriteEndpoint(iface).clearHalt(() => {
+		readEndpoint.clearHalt(() => {
+			writeEndpoint.clearHalt(() => {
 				onConnected(deviceInterface)
 			})
 		});
@@ -114,13 +110,25 @@ const connect = (device) => {
 	}
 }
 
-// const queue = cq().limit({ concurrency: 1 }).process(async function (message, cb) {
-// 	await transfer(message).then(() => { cb(null, message) })
-// })
-
-const transfer = (message) => {
+const read = (size) => {
 	try {
-		return new Promise((res) => findWriteEndpoint(iface).transfer(message, () => { res() }));
+		return new Promise(res => readEndpoint.transfer(size, (err, data) => {
+			if (err) console.error(err)
+			if (err) throw new Error(err.message)
+			res(data)
+		}))
+	} catch (e) {
+		onError(e)
+	}
+}
+
+const write = (message) => {
+	try {
+		return new Promise((res) => writeEndpoint.transfer(message, (err) => {
+			if (err) console.error(err)
+			if (err) throw new Error(err.message)
+			res()
+		}));
 	} catch (e) {
 		onError(e)
 	}
@@ -134,5 +142,6 @@ module.exports = {
 
 		return bus
 	},
-	transfer,
+	read,
+	write,
 }
