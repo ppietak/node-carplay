@@ -7,12 +7,12 @@ const ffmpeg = childProcess.spawn("/usr/bin/ffmpeg", [
 	// '-threads', '8',
 	// '-framerate', '30',
 	// '-bufsize', '512',
-	'-pixel_format', 'rgb565le',
+	'-pix_fmt', 'rgb565le',
 	'-f', 'fbdev', '/dev/fb0',
 ]);
 
-// ffmpeg.stderr.pipe(process.stdout)
-// ffmpeg.stdout.pipe(process.stdout)
+ffmpeg.stderr.pipe(process.stdout)
+ffmpeg.stdout.pipe(process.stdout)
 
 module.exports = {
 	output: ffmpeg.stdin

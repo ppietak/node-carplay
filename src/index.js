@@ -8,15 +8,15 @@ const os = require('os');
 os.setPriority(os.constants.priority.PRIORITY_HIGHEST)
 
 touchscreen.bus.on('touch_down', async (x, y) => {
-	// console.log('d', x, y)
+	console.log('d', x, y)
 	await box.sendTouchDown(x, y)
 })
 touchscreen.bus.on('touch_move', async (x, y) => {
-	// console.log('m', x, y)
+	console.log('m', x, y)
 	await box.sendTouchMove(x, y)
 })
 touchscreen.bus.on('touch_up', async (x, y) => {
-	// console.log('u', x, y)
+	console.log('u', x, y)
 	await box.sendTouchUp(x, y)
 })
 keyboard.bus.on('key_press', async (code) => {
@@ -54,7 +54,7 @@ keyboard.bus.on('key_press', async (code) => {
 	}
 })
 
-box.start(800, 600, 60)
+box.start(800, 600, 30)
 
 box.videoOutputStream.pipe(video.output)
 // box.audioStereoStream.pipe(audio.speakerStereo)
