@@ -16,7 +16,7 @@ const audioStereoStream = new stream.PassThrough()
 const audioMonoStream = new stream.PassThrough()
 const audioInputStream = new stream.PassThrough()
 
-let boxWidth, boxHeight
+let boxWidth, boxHeight, boxFps
 
 let heartbeatInterval
 
@@ -32,7 +32,8 @@ const onStarted = async () => {
 	heartbeatInterval = setInterval(onHeartbeat, HEARTBEAT_INTERVAL_MS)
 
 	// await send(protocol.buildIntegerPacket("/tmp/screen_dpi", 80))
-	await send(protocol.buildSetupPacket(boxWidth, boxHeight, 25, 5))
+	// await send(protocol.buildIntegerPacket("/tmp/charge_mode", 1))
+	await send(protocol.buildSetupPacket(boxWidth, boxHeight, boxFps, 5))
 	// await send(protocol.buildBluetoothPacket('DC:52:85:B4:1F:8C'))
 }
 
@@ -91,6 +92,7 @@ const onData = (data) => {
 }
 
 const onVideo = (data) => {
+	// console.log(data.length)
 	videoOutputStream.write(data.indexOf(naluHeader) === 20 ? data.slice(20) : data)
 }
 
@@ -155,7 +157,7 @@ const onAudio = (data) => {
 const onAudioInput = async (data) => {
 	if (streamingAudioInput) {
 		// console.log(data.byteLength)
-		await send(protocol.buildAudioPacket(data))
+		// await send(protocol.buildAudioPacket(data))
 		// await new Promise(res => setTimeout(res, 20))
 		// console.log(data.byteLength, data)
 	}
@@ -222,9 +224,10 @@ const send = async (packet) => {
 }
 
 module.exports = {
-	start: (width, height) => {
+	start: (width, height, fps) => {
 		boxWidth = width
 		boxHeight = height
+		boxFps = fps
 
 		const usbBus = usb.start()
 

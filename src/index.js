@@ -8,15 +8,19 @@ const os = require('os');
 os.setPriority(os.constants.priority.PRIORITY_HIGHEST)
 
 touchscreen.bus.on('touch_down', async (x, y) => {
+	// console.log('d', x, y)
 	await box.sendTouchDown(x, y)
 })
 touchscreen.bus.on('touch_move', async (x, y) => {
+	// console.log('m', x, y)
 	await box.sendTouchMove(x, y)
 })
 touchscreen.bus.on('touch_up', async (x, y) => {
+	// console.log('u', x, y)
 	await box.sendTouchUp(x, y)
 })
 keyboard.bus.on('key_press', async (code) => {
+	console.log(code)
 	switch (code) {
 		case 28: // select
 			await box.sendButton(box.button.SELECT[0])
@@ -50,16 +54,16 @@ keyboard.bus.on('key_press', async (code) => {
 	}
 })
 
-box.start(1280, 720)
+box.start(800, 600, 60)
 
 box.videoOutputStream.pipe(video.output)
-box.audioStereoStream.pipe(audio.speakerStereo)
-box.audioMonoStream.pipe(audio.speakerMono)
-audio.microphone.pipe(box.audioInputStream)
+// box.audioStereoStream.pipe(audio.speakerStereo)
+// box.audioMonoStream.pipe(audio.speakerMono)
+// audio.microphone.pipe(box.audioInputStream)
 
-box.bus.on('audio_siri_start', () => {
-	audio.startRecording()
-})
-box.bus.on('audio_siri_stop', () => {
-	audio.stopRecording()
-})
+// box.bus.on('audio_siri_start', () => {
+// 	audio.startRecording()
+// })
+// box.bus.on('audio_siri_stop', () => {
+// 	audio.stopRecording()
+// })

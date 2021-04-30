@@ -74,6 +74,7 @@ const onError = (error) => {
 }
 
 const onData = (data) => {
+	// console.log(data.length)
 	bus.emit('data', data)
 }
 

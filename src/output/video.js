@@ -1,4 +1,5 @@
 const childProcess = require('child_process');
+const fs = require('fs');
 
 const ffmpeg = childProcess.spawn("/usr/bin/ffmpeg", [
 	'-hide_banner',
@@ -6,11 +7,12 @@ const ffmpeg = childProcess.spawn("/usr/bin/ffmpeg", [
 	// '-threads', '8',
 	// '-framerate', '30',
 	// '-bufsize', '512',
-	'-pix_fmt', 'bgra',
+	'-pixel_format', 'rgb565le',
 	'-f', 'fbdev', '/dev/fb0',
 ]);
 
 // ffmpeg.stderr.pipe(process.stdout)
+// ffmpeg.stdout.pipe(process.stdout)
 
 module.exports = {
 	output: ffmpeg.stdin

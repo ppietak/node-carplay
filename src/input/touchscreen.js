@@ -1,13 +1,13 @@
 const fs = require('fs')
 const events = require('events')
 
-const DEVICE_PATH = '/dev/input/mouse1';
+const DEVICE_PATH = '/dev/input/mouse0';
 const INPUT_INTERVAL = 10;
 
 const bus = new events.EventEmitter();
 
 const touchscreenWidth = 1024, touchscreenHeight = 768
-const targetWidth = 1280, targetHeight = 720
+const targetWidth = 800, targetHeight = 600
 
 let currentX = touchscreenWidth / 2
 let currentY = touchscreenHeight / 2
