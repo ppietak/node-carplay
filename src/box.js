@@ -7,9 +7,6 @@ const usb = require('./usb')
 const HEADER_SIZE = 16;
 const HEARTBEAT_INTERVAL_MS = 2000;
 
-const audioStereoHeader = new Uint8Array([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
-const audioMonoHeader = new Uint8Array([0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00])
-
 const bus = new events.EventEmitter()
 const videoOutputStream = new stream.PassThrough()
 const audioStereoStream = new stream.PassThrough()
@@ -37,6 +34,20 @@ const handlePacket = (type, payload) => {
 			break
 
 		case protocol.type.AUDIO:
+			// console.log(payload.length, payload)
+
+			const [audioType, decodeType, volume] = protocol.unpack('<LfL', payload);
+			const data = payload.slice(12);
+
+			if (payload.length === 13) {
+				console.log('> AUDIO', [decodeType, volume, audioType, ...protocol.unpack('<B', data)])
+			} else {
+				if (audioType === protocol.audioType.MONO) {
+					audioMonoStream.write(data)
+				} else if (audioType === protocol.audioType.STEREO) {
+					audioStereoStream.write(data)
+				}
+			}
 			break
 
 		case protocol.type.SETUP: {

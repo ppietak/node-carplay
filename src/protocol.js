@@ -58,8 +58,14 @@ module.exports = {
 
 	unpack: (format, vars) => jspack.Unpack(format, vars),
 	unpackHeader: data => {
+		if (!data) {
+			console.error('BAD HEADER');
+			throw new Error('Invalid header')
+		}
+
 		if (data.length !== 16) {
 			console.error('BAD HEADER LENGTH', data.length);
+			throw new Error('Invalid header')
 		}
 
 		const [magicNumber, length, type, checksum] = jspack.Unpack('<LLLL', data)

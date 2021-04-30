@@ -54,11 +54,11 @@ keyboard.bus.on('key_press', async (code) => {
 	}
 })
 
-box.start(800, 600, 60)
+box.start(800, 600, 30)
 
 box.videoOutputStream.pipe(video.output)
-// box.audioStereoStream.pipe(audio.speakerStereo)
-// box.audioMonoStream.pipe(audio.speakerMono)
+box.audioStereoStream.pipe(audio.speakerStereo)
+box.audioMonoStream.pipe(audio.speakerMono)
 // audio.microphone.pipe(box.audioInputStream)
 
 // box.bus.on('audio_siri_start', () => {

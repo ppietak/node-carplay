@@ -10,13 +10,13 @@ const startAplay = params => childProcess.spawn("/usr/bin/aplay", params)
 const startArecord = params => childProcess.spawn("/usr/bin/arecord", params)
 
 const speakerStereo = startAplay([
-	// '--device=plughw:2,0',
+	'--device=plughw:2,0',
 	'--interactive',
 	'--format=S16_LE',
 	'--channels=2',
 	'--rate=44100',
 ])
-// speakerStereo.stderr.pipe(process.stdout)
+speakerStereo.stderr.pipe(process.stdout)
 
 const speakerMono = startAplay([
 	// '--device=plughw:2,0',
@@ -25,7 +25,7 @@ const speakerMono = startAplay([
 	'--channels=1',
 	'--rate=16000',
 ])
-// speakerStereo.stderr.pipe(process.stdout)
+speakerMono.stderr.pipe(process.stdout)
 
 const microphoneParams = [
 	// '--device=plughw:2,0',

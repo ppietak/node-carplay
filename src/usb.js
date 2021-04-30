@@ -112,11 +112,13 @@ const connect = (device) => {
 
 const read = (size) => {
 	try {
-		return new Promise(res => readEndpoint.transfer(size, (err, data) => {
+		return new Promise((res, rej) => readEndpoint.transfer(size, (err, data) => {
 			if (err) console.error(err)
-			if (err) throw new Error(err.message)
+			if (err) rej(err)
 			res(data)
-		}))
+		})).catch(err => {
+			onError(err)
+		})
 	} catch (e) {
 		onError(e)
 	}
@@ -124,11 +126,13 @@ const read = (size) => {
 
 const write = (message) => {
 	try {
-		return new Promise((res) => writeEndpoint.transfer(message, (err) => {
+		return new Promise((res, rej) => writeEndpoint.transfer(message, (err) => {
 			if (err) console.error(err)
-			if (err) throw new Error(err.message)
+			if (err) rej(err)
 			res()
-		}));
+		})).catch(err => {
+			onError(err)
+		})
 	} catch (e) {
 		onError(e)
 	}
