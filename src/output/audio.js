@@ -10,13 +10,14 @@ const startAplay = params => childProcess.spawn("/usr/bin/aplay", params)
 const startArecord = params => childProcess.spawn("/usr/bin/arecord", params)
 
 const speakerStereo = startAplay([
-	'--device=plughw:2,0',
+	// '--device=plughw:2,0',
 	'--interactive',
 	'--format=S16_LE',
 	'--channels=2',
 	'--rate=44100',
 ])
 speakerStereo.stderr.pipe(process.stdout)
+speakerStereo.stdout.pipe(process.stdout)
 
 const speakerMono = startAplay([
 	// '--device=plughw:2,0',
@@ -26,10 +27,11 @@ const speakerMono = startAplay([
 	'--rate=16000',
 ])
 speakerMono.stderr.pipe(process.stdout)
+speakerMono.stdout.pipe(process.stdout)
 
 const microphoneParams = [
 	// '--device=plughw:2,0',
-	'--period-time=16000',
+	// '--period-time=16000',
 	'--file-type=raw',
 	'--format=S16_LE',
 	'--channels=1',
@@ -46,7 +48,7 @@ module.exports = {
 		microphone = startArecord(microphoneParams)
 		// microphone.stdout.pipe(recordingStream)
 		microphone.stdout.pipe(chunkedRecordingStream)
-		// microphone.stderr.pipe(process.stdout)
+		microphone.stderr.pipe(process.stdout)
 	},
 	stopRecording: () => {
 		microphone && microphone.stdout.unpipe(chunkedRecordingStream)

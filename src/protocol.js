@@ -27,32 +27,24 @@ const buildFilePacket = (filename, content) => {
 }
 
 const makeManufacturerInfo = () => buildPacket(20, asBinary('<LL', [0, 0]))
-const buildIntegerPacket = (filename, value) => buildFilePacket(filename, asBinary('<L', value))
+const buildIntegerFilePacket = (filename, value) => buildFilePacket(filename, asBinary('<L', value))
 const buildStringFilePacket = (filename, value) => buildFilePacket(filename, Buffer.from(value, 'ascii'))
 const buildAssetFilePacket = (filename) => buildFilePacket('/tmp/' + filename, fs.readFileSync('assets/' + filename).toString('binary'))
 
 const buildSetupPacket = (width, height, fps, format) => buildPacket(1, asBinary("<LLLLLLL", [width, height, fps, format, 49152, 2, 2]))
 const buildHeartbeatPacket = () => buildPacket(170, Buffer.from(''))
 const buildTouchPacket = (type, x, y) => buildPacket(5, asBinary("<LLLL", [type, x, y, 0]))
-const buildButtonPacket = (code) => buildPacket(8, asBinary("<L", [code]))
-const buildBluetoothPacket = (code) => buildPacket(10, asBinary("<L", [code]))
-const buildAudioPacket = (data) => buildPacket(7, Buffer.concat([asBinary("<LfL", [5, 0.0, 3]), asBinary("<L", len(data)), Buffer.from(data, 'binary')]))
-
-// const allAssets = ["adb", "adb.pub", "helloworld0", "helloworld1", "helloworld2", "libby265n.so", "libby265n_x86.so", "libscreencap40.so", "libscreencap41.so", "libscreencap43.so", "libscreencap50.so", "libscreencap50_x86.so", "libscreencap442.so", "libscreencap422.so", "mirrorcoper.apk", "libscreencap60.so", "libscreencap70.so", "libscreencap71.so", "libscreencap80.so", "libscreencap90.so", "libscreencap100.so", "HWTouch.dex"];
-
-// const afterSetupInfo = [
-// 	makeManufacturerInfo(),
-// 	buildIntegerPacket("/tmp/night_mode", 1),
-// 	buildIntegerPacket("/tmp/hand_drive_mode", 0),
-// 	buildIntegerPacket("/tmp/charge_mode", 1),
-// 	buildStringFilePacket("/etc/box_name", 'RaptorKit'),
-// ];
+const buildCarplayPacket = (code) => buildPacket(8, asBinary("<L", [code]))
+const buildBluetoothPacket = (code) => buildPacket(10, Buffer.from(String(code), 'ascii'))
+const buildAudioPacket = (data) => buildPacket(7, Buffer.concat([asBinary("<LfL", [5, 0.0, 3]), asBinary("<L", len(data)), data]))
 
 module.exports = {
+	buildIntegerFilePacket,
+	buildStringFilePacket,
 	buildHeartbeatPacket,
 	buildTouchPacket,
-	buildButtonPacket,
 	buildSetupPacket,
+	buildCarplayPacket,
 	buildAudioPacket,
 	buildBluetoothPacket,
 
@@ -116,7 +108,7 @@ module.exports = {
 		MOVE: 15,
 		UP: 16,
 	},
-	button: {
+	carplay: {
 		SIRI: [5, 6],
 		LEFT: 100,
 		RIGHT: 101,
@@ -126,5 +118,8 @@ module.exports = {
 		PLAY: 201,
 		PAUSE: 202,
 		PLAY_OR_PAUSE: 203,
+		AUTO_CONNECT: 1002,
 	},
+	// carplay cmd 3 - clicked logo icon
+	// carplay cmd 4 - starting
 }

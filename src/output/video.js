@@ -11,8 +11,8 @@ const ffmpeg = childProcess.spawn("/usr/bin/ffmpeg", [
 	'-f', 'fbdev', '/dev/fb0',
 ]);
 
-// ffmpeg.stderr.pipe(process.stdout)
-// ffmpeg.stdout.pipe(process.stdout)
+ffmpeg.stderr.pipe(process.stdout)
+ffmpeg.stdout.pipe(process.stdout)
 
 module.exports = {
 	output: ffmpeg.stdin

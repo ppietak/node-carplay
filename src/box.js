@@ -11,14 +11,16 @@ const bus = new events.EventEmitter()
 const videoOutputStream = new stream.PassThrough()
 const audioStereoStream = new stream.PassThrough()
 const audioMonoStream = new stream.PassThrough()
-const audioInputStream = new stream.PassThrough()
+const microphoneInput = new stream.PassThrough()
 
 let boxWidth, boxHeight, boxFps
 let heartbeatInterval
 
-let streamingAudioInput = false
+let microphoneIsOn = false
 
 const run = async () => {
+	heartbeatInterval = setInterval(onHeartbeat, HEARTBEAT_INTERVAL_MS)
+
 	while (true) {
 		const header = await usb.read(16);
 		const [type, length] = protocol.unpackHeader(header)
@@ -36,11 +38,25 @@ const handlePacket = (type, payload) => {
 		case protocol.type.AUDIO:
 			// console.log(payload.length, payload)
 
-			const [audioType, decodeType, volume] = protocol.unpack('<LfL', payload);
+			const [audioType, volume, decodeType] = protocol.unpack('<LfL', payload);
 			const data = payload.slice(12);
 
 			if (payload.length === 13) {
-				console.log('> AUDIO', [decodeType, volume, audioType, ...protocol.unpack('<B', data)])
+				const [command] = protocol.unpack('<B', data)
+				console.log('> AUDIO', [decodeType, volume, audioType, command])
+
+				switch (command) {
+					case protocol.audioCommand.SIRI_START:
+						microphoneIsOn = true
+						bus.emit('audio_siri_start')
+						setTimeout(() => { microphoneIsOn = false }, 10000)
+						break
+
+					case protocol.audioCommand.SIRI_STOP:
+						microphoneIsOn = false
+						bus.emit('audio_siri_stop')
+						break
+				}
 			} else {
 				if (audioType === protocol.audioType.MONO) {
 					audioMonoStream.write(data)
@@ -51,128 +67,71 @@ const handlePacket = (type, payload) => {
 			break
 
 		case protocol.type.SETUP: {
-			console.log('> SETUP', protocol.unpack('<LLLLLLL', payload))
+			console.debug('> SETUP', protocol.unpack('<LLLLLLL', payload))
 			break;
 		}
 
 		case protocol.type.CARPLAY:
-			console.log('> CARPLAY', protocol.unpack('<L', payload))
+			console.debug('> CARPLAY', protocol.unpack('<L', payload), payload)
 			break;
 
 		case protocol.type.CONNECTION:
-			console.log('> CONNECTED', protocol.unpack('<L', payload))
+			console.debug('> CONNECTED', protocol.unpack('<L', payload))
 			break;
 
 		case protocol.type.PHASE:
-			console.log('> PHASE', protocol.unpack('<L', payload))
+			console.debug('> PHASE', protocol.unpack('<L', payload))
 			break;
 
 		case protocol.type.DISCONNECTED:
-			console.log('> DISCONNECTED', protocol.unpack('<L', payload))
+			console.debug('> DISCONNECTED', protocol.unpack('<L', payload))
 			break;
 
 		case protocol.type.DEVICE_NAME:
-			console.log('> DEVICE NAME', payload.toString())
+			console.debug('> DEVICE NAME', payload.toString())
 			break;
 
 		case protocol.type.DEVICE_SSID:
-			console.log('> DEVICE SSID', payload.toString())
+			console.debug('> DEVICE SSID', payload.toString())
 			break;
 
 		case protocol.type.KNOWN_DEVICES:
-			console.log('> KNOWN DEVICES (BLUETOOTH)\n', payload.toString().trim().split('\n').filter(l => l.trim().length).reduce((acc, v) => ({ ...acc, [v.substring(0, 17)]: v.substring(17) }), {}))
+			console.debug('> KNOWN DEVICES (BLUETOOTH)\n', payload.toString().trim().split('\n').filter(l => l.trim().length).reduce((acc, v) => ({ ...acc, [v.substring(0, 17)]: v.substring(17) }), {}))
 			break;
 
 		case protocol.type.SOFTWARE_VERSION:
-			console.log('> SOFTWARE VERSION', payload.toString())
+			console.debug('> SOFTWARE VERSION', payload.toString())
 			break;
 
 		default:
-			console.log('-', type, payload.toString())
+			console.debug('-', type, payload.toString())
 	}
 }
 
 const onStarted = async () => {
 	await new Promise(res => setTimeout(res, 500))
-
-	heartbeatInterval = setInterval(onHeartbeat, HEARTBEAT_INTERVAL_MS)
-
 	await send(protocol.buildSetupPacket(boxWidth, boxHeight, boxFps, 5))
-	await run()
+
+	run()
+
+	await new Promise(res => setTimeout(res, 1000))
+	await send(protocol.buildCarplayPacket(protocol.carplay.AUTO_CONNECT))
 }
 
 const onStopped = () => {
 	clearInterval(heartbeatInterval)
 	heartbeatInterval = undefined
-	streamingAudioInput = false
+	microphoneIsOn = false
 }
 
-// let lastAudioHeader
-//
-// const onAudio = (data) => {
-// 	// console.log(data.length, data)
-// 	const headerSize = 12;
-// 	const amount = data.length - headerSize
-//
-// 	if (amount === 1) {
-// 		const [decodeType, volume, audioType, command] = protocol.unpack('<LfLB', data);
-// 		console.log('> AUDIO', decodeType, volume, audioType, command)
-//
-// 		switch (command) {
-// 			case protocol.audioCommand.OUTPUT_START:
-// 				if (decodeType === protocol.audioType.STEREO) {
-// 					bus.emit('audio_stereo_start')
-// 				} else {
-// 					bus.emit('audio_mono_start')
-// 				}
-// 				break
-//
-// 			case protocol.audioCommand.OUTPUT_STOP:
-// 				if (decodeType === protocol.audioType.STEREO) {
-// 					bus.emit('audio_stereo_stop')
-// 				} else {
-// 					bus.emit('audio_mono_stop')
-// 				}
-// 				break
-//
-// 			case protocol.audioCommand.SIRI_START:
-// 				streamingAudioInput = true
-// 				bus.emit('audio_siri_start')
-// 				break
-//
-// 			case protocol.audioCommand.SIRI_STOP:
-// 				streamingAudioInput = false
-// 				bus.emit('audio_siri_stop')
-// 				break
-// 		}
-// 	} else if (amount === 4) {
-// 		console.log('> AUDIO VOL DUR', protocol.unpack("<L", data.slice(headerSize)))
-// 	} else {
-// 		if (data.indexOf(audioMonoHeader) === 0) {
-// 			lastAudioHeader = audioMonoHeader
-// 			audioMonoStream.write(data.slice(headerSize))
-// 		} else if (data.indexOf(audioStereoHeader) === 0) {
-// 			lastAudioHeader = audioStereoHeader
-// 			audioStereoStream.write(data.slice(headerSize))
-// 		} else {
-// 			if (lastAudioHeader === audioMonoHeader) {
-// 				audioMonoStream.write(data)
-// 			} else if (lastAudioHeader === audioStereoHeader) {
-// 				audioStereoStream.write(data)
-// 			} else {
-// 			}
-// 		}
-// 	}
-// }
-//
-// const onAudioInput = async (data) => {
-// 	if (streamingAudioInput) {
-// 		// console.log(data.byteLength)
-// 		// await send(protocol.buildAudioPacket(data))
-// 		// await new Promise(res => setTimeout(res, 20))
-// 		// console.log(data.byteLength, data)
-// 	}
-// }
+const onMicrophoneData = async (data) => {
+	if (!microphoneIsOn) {
+		return
+	}
+
+	// console.log(data.byteLength)
+	await send(protocol.buildAudioPacket(data))
+}
 
 const onHeartbeat = async () => {
 	await send(protocol.buildHeartbeatPacket())
@@ -197,7 +156,8 @@ module.exports = {
 
 		usbBus.on('started', onStarted)
 		usbBus.on('stopped', onStopped)
-		// audioInputStream.on('data', onAudioInput)
+
+		microphoneInput.on('data', onMicrophoneData)
 	},
 	sendTouchUp: async (x, y) => {
 		await send(protocol.buildTouchPacket(protocol.touch.UP, x/boxWidth*10000, y/boxHeight*10000))
@@ -209,12 +169,12 @@ module.exports = {
 		await send(protocol.buildTouchPacket(protocol.touch.DOWN, x/boxWidth*10000, y/boxHeight*10000))
 	},
 	sendButton: async (code) => {
-		await send(protocol.buildButtonPacket(code))
+		await send(protocol.buildCarplayPacket(code))
 	},
 	videoOutputStream,
 	audioStereoStream,
 	audioMonoStream,
-	audioInputStream,
+	microphoneInput,
 	bus,
-	button: protocol.button,
+	button: protocol.carplay,
 }
