@@ -2,11 +2,14 @@ const usb = require('usb')
 const events = require('events')
 
 const DEVICE_ID = 5408;
+const CONNECTION_TIMEOUT = 5000;
 
 const bus = new events.EventEmitter();
 
 let connecting = false
 let iface
+let writeEndpoint
+let readEndpoint
 
 const findReadEndpoint = deviceInterface => {
 	const end = deviceInterface && deviceInterface.endpoints.find(e => e.direction === 'in')
@@ -15,6 +18,7 @@ const findReadEndpoint = deviceInterface => {
 	}
 	return end
 }
+
 const findWriteEndpoint = deviceInterface => {
 	const end = deviceInterface && deviceInterface.endpoints.find(e => e.direction === 'out')
 	if (!end) {
@@ -22,9 +26,12 @@ const findWriteEndpoint = deviceInterface => {
 	}
 	return end
 }
+
 const clean = () => {
 	iface && iface.release(true, () => {})
 	iface = undefined
+	writeEndpoint = undefined
+	readEndpoint = undefined
 }
 
 const onAttach = (device) => {
@@ -43,25 +50,18 @@ const onDetach = (device) => {
 	}
 }
 
-const onConnected = (deviceInterface) => {
+const onConnected = async (deviceInterface) => {
 	console.log('Device connected')
 	connecting = false
 
 	iface = deviceInterface
+	readEndpoint = findReadEndpoint(iface);
+	writeEndpoint = findWriteEndpoint(iface);
 
-	findReadEndpoint(iface).on('data', onData)
-	findReadEndpoint(iface).once('error', onError)
-	findReadEndpoint(iface).on('error', () => {})
-	findReadEndpoint(iface).startPoll()
+	readEndpoint.once('error', onError)
+	readEndpoint.on('error', () => {})
 
 	bus.emit('started')
-}
-
-const onDisconnected = () => {
-	console.log('Device disconnected')
-
-	bus.emit('stopped')
-	clean()
 }
 
 const onError = (error) => {
@@ -72,13 +72,13 @@ const onError = (error) => {
 	clean()
 }
 
-const onData = (data) => {
-	bus.emit('data', data)
-}
-
 const connect = (device) => {
 	console.log('Connecting...')
 	connecting = true
+
+	setTimeout(() => {
+		if (connecting) onError('Could not connect')
+	}, CONNECTION_TIMEOUT)
 
 	try {
 		device = device || usb.getDeviceList().find(dev => dev.deviceDescriptor.idProduct === DEVICE_ID)
@@ -97,10 +97,11 @@ const connect = (device) => {
 		deviceInterface.claim();
 
 		iface = deviceInterface
+		readEndpoint = findReadEndpoint(iface);
+		writeEndpoint = findWriteEndpoint(iface);
 
-		findReadEndpoint(iface).clearHalt(() => {
-			findWriteEndpoint(iface).timeout = 0;
-			findWriteEndpoint(iface).clearHalt(() => {
+		readEndpoint.clearHalt(() => {
+			writeEndpoint.clearHalt(() => {
 				onConnected(deviceInterface)
 			})
 		});
@@ -109,10 +110,29 @@ const connect = (device) => {
 	}
 }
 
-const transfer = (message) => {
+const read = (size) => {
 	try {
-		// console.log('Transferring', message)
-		return findWriteEndpoint(iface).transfer(message);
+		return new Promise((res, rej) => readEndpoint.transfer(size, (err, data) => {
+			if (err) console.error(err)
+			if (err) rej(err)
+			res(data)
+		})).catch(err => {
+			onError(err)
+		})
+	} catch (e) {
+		onError(e)
+	}
+}
+
+const write = (message) => {
+	try {
+		return new Promise((res, rej) => writeEndpoint.transfer(message, (err) => {
+			if (err) console.error(err)
+			if (err) rej(err)
+			res()
+		})).catch(err => {
+			onError(err)
+		})
 	} catch (e) {
 		onError(e)
 	}
@@ -126,5 +146,6 @@ module.exports = {
 
 		return bus
 	},
-	transfer,
+	read,
+	write,
 }
