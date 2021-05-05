@@ -12,20 +12,42 @@ const videoOutputStream = new stream.PassThrough()
 const audioStereoStream = new stream.PassThrough()
 const audioMonoStream = new stream.PassThrough()
 const microphoneInput = new stream.PassThrough()
+let messageQueue = []
+let heartbeatQueue = []
 
 let boxWidth, boxHeight, boxFps
 let heartbeatInterval
 
 let microphoneIsOn = false
 
-const run = async () => {
-	heartbeatInterval = setInterval(onHeartbeat, HEARTBEAT_INTERVAL_MS)
-
+const readLoop = async () => {
 	while (true) {
-		const header = await usb.read(16);
+		const header = await usb.read(HEADER_SIZE);
 		const [type, length] = protocol.unpackHeader(header)
 		const payload = await usb.read(length)
+
 		handlePacket(type, payload)
+	}
+}
+
+const writeLoop = async () => {
+	heartbeatInterval = setInterval(onHeartbeat, HEARTBEAT_INTERVAL_MS)
+	heartbeatQueue = []
+	messageQueue = []
+
+	while (true) {
+		const message = heartbeatQueue.shift() || messageQueue.shift();
+		if (message) {
+			if (message.byteLength > HEADER_SIZE) {
+				await usb.write(message.slice(0, HEADER_SIZE))
+				await usb.write(message.slice(HEADER_SIZE))
+			} else {
+				await usb.write(message)
+			}
+			// console.log(messageQueue.length)
+		}
+
+		await new Promise(res => setTimeout(res, 10))
 	}
 }
 
@@ -49,7 +71,7 @@ const handlePacket = (type, payload) => {
 					case protocol.audioCommand.SIRI_START:
 						microphoneIsOn = true
 						bus.emit('audio_siri_start')
-						setTimeout(() => { microphoneIsOn = false }, 10000)
+						// setTimeout(() => { microphoneIsOn = false }, 30000)
 						break
 
 					case protocol.audioCommand.SIRI_STOP:
@@ -72,7 +94,7 @@ const handlePacket = (type, payload) => {
 		}
 
 		case protocol.type.CARPLAY:
-			console.debug('> CARPLAY', protocol.unpack('<L', payload), payload)
+			console.debug('> CARPLAY', protocol.unpack('<L', payload))
 			break;
 
 		case protocol.type.CONNECTION:
@@ -109,10 +131,12 @@ const handlePacket = (type, payload) => {
 }
 
 const onStarted = async () => {
+	writeLoop()
+
 	await new Promise(res => setTimeout(res, 500))
 	await send(protocol.buildSetupPacket(boxWidth, boxHeight, boxFps, 5))
 
-	run()
+	readLoop()
 
 	await new Promise(res => setTimeout(res, 1000))
 	await send(protocol.buildCarplayPacket(protocol.carplay.AUTO_CONNECT))
@@ -129,21 +153,16 @@ const onMicrophoneData = async (data) => {
 		return
 	}
 
-	// console.log(data.byteLength)
+	console.log(data.byteLength)
 	await send(protocol.buildAudioPacket(data))
 }
 
 const onHeartbeat = async () => {
-	await send(protocol.buildHeartbeatPacket())
+	heartbeatQueue.push(protocol.buildHeartbeatPacket())
 }
 
 const send = async (packet) => {
-	if (packet.byteLength > HEADER_SIZE) {
-		await usb.write(packet.slice(0, HEADER_SIZE))
-		await usb.write(packet.slice(HEADER_SIZE))
-	} else {
-		await usb.write(packet)
-	}
+	messageQueue.push(packet)
 }
 
 module.exports = {

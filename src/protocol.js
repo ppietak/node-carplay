@@ -36,7 +36,7 @@ const buildHeartbeatPacket = () => buildPacket(170, Buffer.from(''))
 const buildTouchPacket = (type, x, y) => buildPacket(5, asBinary("<LLLL", [type, x, y, 0]))
 const buildCarplayPacket = (code) => buildPacket(8, asBinary("<L", [code]))
 const buildBluetoothPacket = (code) => buildPacket(10, Buffer.from(String(code), 'ascii'))
-const buildAudioPacket = (data) => buildPacket(7, Buffer.concat([asBinary("<LfL", [5, 0.0, 3]), asBinary("<L", len(data)), data]))
+const buildAudioPacket = (data) => buildPacket(7, Buffer.concat([asBinary("<LfL", [5, 0.0, 3]), data]))
 
 module.exports = {
 	buildIntegerFilePacket,
