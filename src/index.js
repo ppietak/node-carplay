@@ -1,6 +1,7 @@
 const box = require('./box')
 const touchscreen = require('./input/touchscreen')
 const keyboard = require('./input/keyboard')
+const microphone = require('./input/microphone')
 const video = require('./output/video')
 const audio = require('./output/audio')
 
@@ -59,11 +60,11 @@ box.start(800, 600, 30)
 box.videoOutputStream.pipe(video.output)
 box.audioStereoStream.pipe(audio.speakerStereo)
 box.audioMonoStream.pipe(audio.speakerMono)
-audio.microphone.pipe(box.microphoneInput)
+microphone.input.pipe(box.microphoneInput)
 
 box.bus.on('audio_siri_start', () => {
-	audio.startRecording()
+	microphone.startRecording()
 })
 box.bus.on('audio_siri_stop', () => {
-	audio.stopRecording()
+	microphone.stopRecording()
 })
