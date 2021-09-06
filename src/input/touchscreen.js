@@ -39,6 +39,9 @@ const delayInput = debounce((event) => {
 	}
 }, INPUT_INTERVAL);
 
+touchscreen.on('error', async (data) => {
+	console.error('Could not load touchscreen device')
+})
 touchscreen.on('data', async (data) => {
 	const event = parse(data);
 

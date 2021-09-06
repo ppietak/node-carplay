@@ -7,7 +7,7 @@ const ffmpeg = childProcess.spawn("/usr/bin/ffmpeg", [
 	// '-threads', '8',
 	// '-framerate', '30',
 	// '-bufsize', '512',
-	'-pix_fmt', 'rgb565le',
+	'-pix_fmt', 'bgra',
 	'-f', 'fbdev', '/dev/fb0',
 ]);
 

@@ -2,7 +2,7 @@ const stream = require('stream')
 const childProcess = require('child_process')
 const chunker = require('stream-chunker');
 
-const RECORD_BUFFER_SIZE = 320 * 16;
+const RECORD_BUFFER_SIZE = 320 * 8;
 
 const input = new stream.PassThrough()
 const chunkedPassThrough = chunker(RECORD_BUFFER_SIZE)

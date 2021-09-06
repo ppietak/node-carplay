@@ -36,15 +36,19 @@ const writeLoop = async () => {
 	messageQueue = []
 
 	while (true) {
-		const message = heartbeatQueue.shift() || messageQueue.shift();
-		if (message) {
-			if (message.byteLength > HEADER_SIZE) {
-				await usb.write(message.slice(0, HEADER_SIZE))
-				await usb.write(message.slice(HEADER_SIZE))
-			} else {
-				await usb.write(message)
+		try {
+			const message = heartbeatQueue.shift() || messageQueue.shift();
+			if (message) {
+				if (message.byteLength > HEADER_SIZE) {
+					await usb.write(message.slice(0, HEADER_SIZE))
+					await usb.write(message.slice(HEADER_SIZE))
+				} else {
+					await usb.write(message)
+				}
+				// console.log(messageQueue.length)
 			}
-			// console.log(messageQueue.length)
+		} catch (e) {
+			console.error(e)
 		}
 
 		await new Promise(res => setTimeout(res, 10))
@@ -126,7 +130,7 @@ const handlePacket = (type, payload) => {
 			break;
 
 		default:
-			console.debug('-', type, payload.toString())
+			console.debug('-', type, payload && payload.toString())
 	}
 }
 
@@ -153,7 +157,7 @@ const onMicrophoneData = async (data) => {
 		return
 	}
 
-	console.log(data.byteLength)
+	// console.log(data.byteLength)
 	await send(protocol.buildAudioPacket(data))
 }
 

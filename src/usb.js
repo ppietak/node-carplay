@@ -65,7 +65,7 @@ const onConnected = async (deviceInterface) => {
 }
 
 const onError = (error) => {
-	console.log('Error', error)
+	console.log('Error: ' + error)
 	connecting = false
 
 	bus.emit('stopped')
@@ -84,7 +84,7 @@ const connect = (device) => {
 		device = device || usb.getDeviceList().find(dev => dev.deviceDescriptor.idProduct === DEVICE_ID)
 
 		if (!device) {
-			throw new Error('No device')
+			throw new Error('No device to connect')
 		}
 
 		if (device.deviceDescriptor.idProduct !== DEVICE_ID) {
@@ -111,30 +111,46 @@ const connect = (device) => {
 }
 
 const read = (size) => {
+	if (!size) {
+		return null
+	}
+
 	try {
-		return new Promise((res, rej) => readEndpoint.transfer(size, (err, data) => {
-			if (err) console.error(err)
-			if (err) rej(err)
-			res(data)
-		})).catch(err => {
-			onError(err)
+		return new Promise((res, rej) => {
+			if (!readEndpoint) {
+				rej('No device to read from')
+			} else {
+				readEndpoint.transfer(size, (err, data) => {
+					if (err) console.error(err)
+					if (err) rej(err)
+					res(data)
+				})
+			}
+		}).catch(err => {
+			onError('Read error: ', err)
 		})
 	} catch (e) {
-		onError(e)
+		onError('Read error: ', e)
 	}
 }
 
 const write = (message) => {
 	try {
-		return new Promise((res, rej) => writeEndpoint.transfer(message, (err) => {
-			if (err) console.error(err)
-			if (err) rej(err)
-			res()
-		})).catch(err => {
-			onError(err)
+		return new Promise((res, rej) => {
+			if (!writeEndpoint) {
+				rej('No device to write to')
+			} else {
+				writeEndpoint.transfer(message, (err) => {
+					if (err) console.error(err)
+					if (err) rej(err)
+					res()
+				})
+			}
+		}).catch(err => {
+			onError('Write error: ', err)
 		})
 	} catch (e) {
-		onError(e)
+		onError('Write error: ', e)
 	}
 }
 
