@@ -1,6 +1,7 @@
 const stream = require('stream')
 const events = require('events')
 
+const logger = require('./logger')
 const protocol = require('./protocol')
 const usb = require('./usb')
 
@@ -73,7 +74,7 @@ const handlePacket = (type, payload) => {
 
 			if (payload.length === 13) {
 				const [command] = protocol.unpack('<B', data)
-				console.log('> AUDIO', [decodeType, volume, audioType, command])
+				logger.debug('> AUDIO', [decodeType, volume, audioType, command])
 
 				switch (command) {
 					case protocol.audioCommand.SIRI_START:
@@ -97,44 +98,44 @@ const handlePacket = (type, payload) => {
 			break
 
 		case protocol.type.SETUP: {
-			console.debug('> SETUP', protocol.unpack('<LLLLLLL', payload))
+			logger.debug('> SETUP', protocol.unpack('<LLLLLLL', payload))
 			break;
 		}
 
 		case protocol.type.CARPLAY:
-			console.debug('> CARPLAY', protocol.unpack('<L', payload))
+			logger.debug('> CARPLAY', protocol.unpack('<L', payload))
 			break;
 
 		case protocol.type.CONNECTION:
-			console.debug('> CONNECTED', protocol.unpack('<L', payload))
+			logger.debug('> CONNECTED', protocol.unpack('<L', payload))
 			break;
 
 		case protocol.type.PHASE:
-			console.debug('> PHASE', protocol.unpack('<L', payload))
+			logger.debug('> PHASE', protocol.unpack('<L', payload))
 			break;
 
 		case protocol.type.DISCONNECTED:
-			console.debug('> DISCONNECTED', protocol.unpack('<L', payload))
+			logger.debug('> DISCONNECTED', protocol.unpack('<L', payload))
 			break;
 
 		case protocol.type.DEVICE_NAME:
-			console.debug('> DEVICE NAME', payload.toString())
+			logger.debug('> DEVICE NAME', payload.toString())
 			break;
 
 		case protocol.type.DEVICE_SSID:
-			console.debug('> DEVICE SSID', payload.toString())
+			logger.debug('> DEVICE SSID', payload.toString())
 			break;
 
 		case protocol.type.KNOWN_DEVICES:
-			console.debug('> KNOWN DEVICES (BLUETOOTH)\n', payload.toString().trim().split('\n').filter(l => l.trim().length).reduce((acc, v) => ({ ...acc, [v.substring(0, 17)]: v.substring(17) }), {}))
+			logger.debug('> KNOWN DEVICES (BLUETOOTH)\n', payload.toString().trim().split('\n').filter(l => l.trim().length).reduce((acc, v) => ({ ...acc, [v.substring(0, 17)]: v.substring(17) }), {}))
 			break;
 
 		case protocol.type.SOFTWARE_VERSION:
-			console.debug('> SOFTWARE VERSION', payload.toString())
+			logger.debug('> SOFTWARE VERSION', payload.toString())
 			break;
 
 		default:
-			console.debug('-', type, payload.toString())
+			logger.debug('-', type, payload.toString())
 	}
 }
 

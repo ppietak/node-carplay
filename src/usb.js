@@ -1,6 +1,8 @@
 const usb = require('usb')
 const events = require('events')
 
+const logger = require('./logger')
+
 const DEVICE_ID = 5408;
 const CONNECTION_TIMEOUT = 5000;
 
@@ -14,7 +16,7 @@ let readEndpoint
 const findReadEndpoint = deviceInterface => {
 	const end = deviceInterface && deviceInterface.endpoints.find(e => e.direction === 'in')
 	if (!end) {
-		throw new Error('Device read endpoint not found')
+		throw new Error('Box read endpoint not found')
 	}
 	return end
 }
@@ -22,7 +24,7 @@ const findReadEndpoint = deviceInterface => {
 const findWriteEndpoint = deviceInterface => {
 	const end = deviceInterface && deviceInterface.endpoints.find(e => e.direction === 'out')
 	if (!end) {
-		throw new Error('Device write endpoint not found')
+		throw new Error('Box write endpoint not found')
 	}
 	return end
 }
@@ -36,14 +38,14 @@ const clean = () => {
 
 const onAttach = (device) => {
 	if (!connecting && device.deviceDescriptor.idProduct === DEVICE_ID) {
-		console.log('USB attached')
+		logger.info('Box attached')
 		connect(device)
 	}
 }
 
 const onDetach = (device) => {
 	if (device.deviceDescriptor.idProduct === DEVICE_ID) {
-		console.log('USB detached')
+		logger.info('Box detached')
 
 		bus.emit('stopped')
 		clean()
@@ -51,7 +53,7 @@ const onDetach = (device) => {
 }
 
 const onConnected = async (deviceInterface) => {
-	console.log('Device connected')
+	logger.info('Box connected')
 	connecting = false
 
 	iface = deviceInterface
@@ -65,7 +67,7 @@ const onConnected = async (deviceInterface) => {
 }
 
 const onError = (error) => {
-	console.log('Error: ' + error)
+	logger.error(error)
 	connecting = false
 
 	bus.emit('stopped')
@@ -73,7 +75,7 @@ const onError = (error) => {
 }
 
 const connect = (device) => {
-	console.log('Connecting...')
+	logger.info('Connecting box...')
 	connecting = true
 
 	setTimeout(() => {
@@ -141,7 +143,7 @@ const write = (message) => {
 				rej('No device to write to')
 			} else {
 				writeEndpoint.transfer(message, (err) => {
-					if (err) console.error(err)
+					if (err) logger.error(err)
 					if (err) rej(err)
 					res()
 				})

@@ -1,9 +1,9 @@
 const box = require('./box')
 const touchscreen = require('./input/touchscreen')
 const keyboard = require('./input/keyboard')
-// const microphone = require('./input/microphone')
+const microphone = require('./input/microphone')
 const video = require('./output/video')
-// const audio = require('./output/audio')
+const audio = require('./output/audio')
 
 const os = require('os');
 os.setPriority(os.constants.priority.PRIORITY_HIGH)
@@ -58,13 +58,13 @@ keyboard.bus.on('key_press', async (code) => {
 box.start(1280, 720, 60)
 
 box.videoOutputStream.pipe(video.output)
-// box.audioStereoStream.pipe(audio.speakerStereo)
-// box.audioMonoStream.pipe(audio.speakerMono)
-// microphone.input.pipe(box.microphoneInput)
+box.audioStereoStream.pipe(audio.speakerStereo)
+box.audioMonoStream.pipe(audio.speakerMono)
+microphone.input.pipe(box.microphoneInput)
 
-// box.bus.on('audio_siri_start', () => {
-// 	microphone.startRecording()
-// })
-// box.bus.on('audio_siri_stop', () => {
-// 	microphone.stopRecording()
-// })
+box.bus.on('audio_siri_start', () => {
+	microphone.startRecording()
+})
+box.bus.on('audio_siri_stop', () => {
+	microphone.stopRecording()
+})

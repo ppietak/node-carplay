@@ -1,7 +1,7 @@
 const fs = require('fs')
 const events = require('events')
+const config = require('../config')
 
-const DEVICE_PATH = '/dev/input/mouse2';
 const INPUT_INTERVAL = 10;
 
 const bus = new events.EventEmitter();
@@ -26,7 +26,7 @@ const parse = buf => ({
 	y: buf.readInt8(2)
 })
 
-const touchscreen = fs.createReadStream(DEVICE_PATH, {flags: 'r'});
+const touchscreen = fs.createReadStream(config.TOUCHSCREEN_DEVICE, {flags: 'r'});
 
 const delay = debounce((t, x, y) => { bus.emit(t, ...normalize(x, y)) }, 50)
 const delayInput = debounce((event) => {

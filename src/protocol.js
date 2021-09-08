@@ -1,5 +1,6 @@
 const { jspack } = require('jspack');
 const fs = require('fs');
+const logger = require('./logger')
 
 const MAGIC_CONST = 0x55aa55aa;
 
@@ -51,24 +52,24 @@ module.exports = {
 	unpack: (format, vars) => jspack.Unpack(format, vars),
 	unpackHeader: data => {
 		if (!data) {
-			console.error('BAD HEADER');
+			logger.debug('BAD HEADER');
 			throw new Error('Invalid header')
 		}
 
 		if (data.length !== 16) {
-			console.error('BAD HEADER LENGTH', data.length);
+			logger.debug('BAD HEADER LENGTH', data.length);
 			throw new Error('Invalid header')
 		}
 
 		const [magicNumber, length, type, checksum] = jspack.Unpack('<LLLL', data)
 
 		if (!verifyType(type, checksum)) {
-			console.error('BAD HEADER TYPE', type, data.length, data);
+			logger.debug('BAD HEADER TYPE', type, data.length, data);
 			throw new Error('Invalid header')
 		}
 
 		if (!verifyMagicConst(magicNumber)) {
-			console.error('BAD HEADER MAGIC NUMBER');
+			logger.debug('BAD HEADER MAGIC NUMBER');
 			throw new Error('Invalid header')
 		}
 

@@ -1,11 +1,11 @@
 const events = require('events')
 const InputEvent = require('input-event');
+const config = require('../config')
 
-const DEVICE_PATH = '/dev/input/event0';
 let input, keyboard;
 
 try {
-	input = new InputEvent(DEVICE_PATH);
+	input = new InputEvent(config.KEYBOARD_DEVICE);
 	keyboard = new InputEvent.Keyboard(input);
 } catch (e) {
 }
