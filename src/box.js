@@ -56,6 +56,10 @@ const writeLoop = async () => {
 }
 
 const handlePacket = (type, payload) => {
+	if (!payload) {
+		return
+	}
+
 	switch (type) {
 		case protocol.type.VIDEO:
 			videoOutputStream.write(payload)
@@ -130,7 +134,7 @@ const handlePacket = (type, payload) => {
 			break;
 
 		default:
-			console.debug('-', type, payload && payload.toString())
+			console.debug('-', type, payload.toString())
 	}
 }
 
@@ -142,7 +146,7 @@ const onStarted = async () => {
 
 	readLoop()
 
-	await new Promise(res => setTimeout(res, 1000))
+	await new Promise(res => setTimeout(res, 500))
 	await send(protocol.buildCarplayPacket(protocol.carplay.AUTO_CONNECT))
 }
 
